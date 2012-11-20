@@ -10,6 +10,7 @@ import qualified Data.Map as M
 import System.Exit (exitSuccess)
 import qualified Data.Text as T
 import Menu
+import Safe (fromJustNote)
 
 --main = (fmap (zip exerList) . mapM query) exerList >>= printWiki
 
@@ -30,13 +31,13 @@ import Menu
 data Exercise = Exercise {
   exerKey   :: T.Text,
   exerLabel :: T.Text
-}
+} deriving Show
 
 type Exercises = M.Map T.Text Exercise
 
 type Weight = Int
 type Reps   = Int
-data Proficiency = Proficiency Exercise (Weight, Reps)
+data Proficiency = Proficiency Exercise (Weight, Reps) deriving Show
 
 type Proficiencies = M.Map T.Text Proficiency
 
@@ -47,18 +48,22 @@ data FitState = FitState {
   workout :: Exercises
 }
 
-data MainMenuCommand = MMWorkoutStatus | MMUpdate | MMAdd | MMRemove | MMSave | MMQuit
+data MainMenuCommand = MMWorkoutStatus | MMUpdate | MMAdd | MMRemove | MMSave | MMQuit deriving (Eq, Ord)
 
 
 main :: IO ()
 main = do
-  let fitstate = FitState M.empty exerciseList M.empty
+  let fitstate = FitState profList exerciseList workoutList
   runStateT mainLoop fitstate >> return ()
+
+  where
+    workoutList = M.fromList . drop 2 . take 6 . M.toList $ exerciseList
+    profList = M.fromList . map (\(key, exer) -> (key, Proficiency exer (5,6))) . drop 4 . take 9 . M.toList $ exerciseList
 
 
 mainLoop :: StateT FitState IO ()
 mainLoop = do
-  command <- liftIO $ inputMenu menuCrud
+  command <- liftIO $ inputMenu "Main Menu" menuCrud
 
   case command of
     Nothing -> mainLoop
@@ -73,8 +78,7 @@ mainLoop = do
   io "Press any key to continue" () >> liftIO getLine
   mainLoop
   where
-    menuCrud :: Menu MainMenuCommand
-    menuCrud = fromList "Exercise Tracking Program" $ [
+    menuCrud = [
       (MMWorkoutStatus, "Information on current workout "),
       (MMUpdate,        "Update an exercise in current workout"),
       (MMAdd,           "Add New exercise"),
@@ -83,32 +87,30 @@ mainLoop = do
       (MMQuit,          "Quit")]
 
 
+fromList = undefined
 
 printWorkout :: StateT FitState IO ()
 printWorkout = fmap proficiencies get >>= DT.mapM printExer >> return ()
-  where printExer (Proficiency exer _) = io "{}\n" (Only $ exerLabel exer)
+  where printExer (Proficiency exer (weight, reps)) = io "{}: {}@{}\n" ((left 20 ' ' $ exerLabel exer), reps,weight)
  
 updateExercise :: StateT FitState IO () 
 updateExercise = do
   state <- get
-  let profs = proficiencies state :: Proficiencies
-      exers = exercises state `M.intersection` profs
+  let profs = proficiencies state                    :: Proficiencies
+      exers = exercises state `M.intersection` profs :: Exercises
   
-  exer <- liftIO . inputMenu $ fromList "Current Workout" (M.toList exers)
-  undefined 
-{-  case lookup exer profs of
-        Nothing -> error "This shouldn't happen"
-        Just (label, repinfo) -> do
-          io "Current Status of {}\n" (Only label)
-          case repinfo of
-            Nothing ->            io "You have never done this exercise.\n" ()
-            Just (weight,reps) -> io "You can do {} at {} pounds.\n" (reps,weight)
-  where
-    noExercises = io "Your current workout has no exercises in it.\n" ()
--}
+  mexer <- liftIO $ inputMenu "Current Workout" (M.toList $ M.map exerLabel (workout state)) :: StateT FitState IO (Maybe T.Text)
+  case mexer of
+    Nothing -> io "You don't have any exercises set up for your workout.\n" ()
+    Just key -> do
+      case M.lookup key profs of
+        Nothing -> io "You have never done this exercise.\n" ()
+        Just (Proficiency exer (weight, reps))-> io "For {}, you can do {} reps at {} pounds.\n" (exerLabel exer, reps, weight)
+      newweight <- prompt "New weight:" () :: StateT FitState IO Int
+      newreps   <- prompt "New reps:" () :: StateT FitState IO Int
+      modify (\s -> s { proficiencies = M.insert key (Proficiency (fromJustNote "updateExercise" $ M.lookup key (exercises state)) (newweight, newreps)) profs })
 
-  
-    
+
 addExercise = error "addExercise"
 removeExercise = error "removeExercise"
 saveExercises = error "saveExercises"

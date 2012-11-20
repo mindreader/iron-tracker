@@ -1,42 +1,52 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies #-}
 
-module Menu(Menu(..), MenuItem(..), inputMenu, fromList) where
+module Menu where
 
 
 import Prelude hiding (catch)
-import Control.Monad
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Data.Monoid
+import Data.Text.Format as Fmt
 
 import Data.Maybe
+import qualified Data.Map as M
+import Safe (atMay)
 
+
+class Menuable a b | b -> a where
+  toMenu :: a -> Menu b
+
+instance (Ord a) => Menuable [(a, T.Text)] a where
+  toMenu list = Menu $ M.mapWithKey (\x y -> MenuItem x y) $ M.fromList $ list
+
+
+type MenuTitle = T.Text
+data Menu a = Menu {
+  menuItems :: M.Map a (MenuItem a)
+}
 data MenuItem a = MenuItem {
   menuKey :: a,
   menuTitle :: T.Text
 }
 
-type MenuTitle = T.Text
-data Menu a = Menu MenuTitle [MenuItem a]
 
-fromList :: T.Text -> [(a, T.Text)] -> Menu a
-fromList title list = Menu title $ map (\(x,y) -> MenuItem x y) list
-
-displayMenu :: Menu a -> IO ()
-displayMenu (Menu title items) =
-  let stuff = zip [(0::Int)..] items
-  in TIO.putStrLn "" >> TIO.putStrLn title >> forM_ stuff printstuff
+inputMenu :: Menuable a b => T.Text -> a -> IO (Maybe b)
+inputMenu title menuable = loop
   where
-    printstuff (i, (MenuItem _ label)) = TIO.putStrLn $ mconcat [(T.pack $ show i), ". ",label]
+    loop = case items of
+      [] -> return Nothing
+      items' -> do
+        display title items'
+        mkey <- fmap (listToMaybe . fmap fst . reads) getLine
+        case mkey of
+          Nothing -> loop
+          Just key -> maybe loop (return . Just . menuKey) $ items' `atMay` key
 
-inputMenu :: Menu a -> IO (Maybe a)
-inputMenu (Menu _ []) = return Nothing
-inputMenu menu@(Menu _ items) = fmap Just loop
-  where loop = do
-          let redo = TIO.putStrLn "Invalid input" >> loop
-          i <- displayMenu menu >> fmap (listToMaybe . fmap fst . reads) getLine
-          case i of
-            Nothing -> redo
-            Just i' -> case drop i' items of
-                   [] -> TIO.putStrLn "Invalid input" >> loop
-                   (x:_) -> return . menuKey $ x
+    items = (M.elems . menuItems . toMenu $ menuable)
+
+    display :: T.Text -> [MenuItem a] -> IO ()
+    display title items = do
+      Fmt.print "\n{}\n" (Only title)
+      mapM_ printLine (zip [(0::Int)..] items)
+
+    printLine (i, (MenuItem _ label)) = Fmt.print "{}. {}\n" (i,label)
