@@ -28,96 +28,98 @@ import Safe (fromJustNote)
 --progression :: Int -> [Int]
 --progression = reverse . take 6 . iterate (\x -> round $ fromIntegral x * 0.95)
 
-data Exercise = Exercise {
-  exerKey   :: T.Text,
-  exerLabel :: T.Text
-} deriving Show
-
-type Exercises = M.Map T.Text Exercise
-
-type Weight = Int
-type Reps   = Int
-data Proficiency = Proficiency Exercise (Weight, Reps) deriving Show
-
-type Proficiencies = M.Map T.Text Proficiency
-
-
-data FitState = FitState {
-  proficiencies :: Proficiencies,
-  exercises :: Exercises,
-  workout :: Exercises
-}
-
-data MainMenuCommand = MMWorkoutStatus | MMUpdate | MMAdd | MMRemove | MMSave | MMQuit deriving (Eq, Ord)
+data MainMenuCommand = MMWorkoutStatus | MMUpdate | MMAdd | MMRemove | MMInclude | MMDisInclude | MMQuit deriving (Eq, Ord)
 
 
 main :: IO ()
-main = do
-  let fitstate = FitState profList exerciseList workoutList
-  runStateT mainLoop fitstate >> return ()
-
-  where
-    workoutList = M.fromList . drop 2 . take 6 . M.toList $ exerciseList
-    profList = M.fromList . map (\(key, exer) -> (key, Proficiency exer (5,6))) . drop 4 . take 9 . M.toList $ exerciseList
+main = runFitStateT mainLoop
 
 
-mainLoop :: StateT FitState IO ()
+mainLoop :: MonadIO m => FitStateT m ()
 mainLoop = do
   command <- liftIO $ inputMenu "Main Menu" menuCrud
 
   case command of
     Nothing -> mainLoop
     Just command' -> case command' of
-      MMWorkoutStatus -> printWorkout
-      MMUpdate        -> updateExercise
-      MMAdd           -> addExercise
-      MMRemove        -> removeExercise
-      MMSave          -> saveExercises
-      MMQuit          -> liftIO $ exitSuccess
+      MMWorkoutStatus -> printWorkout >> continue
+      MMUpdate        -> updateExercise >> continue
+      MMAdd           -> addNewExercise >> continue
+      MMInclude       -> addExerciseToWorkout >> continue
+      MMDisInclude    -> removeExerciseFromWorkout >> continue
+      MMQuit          -> return ()
 
-  io "Press any key to continue" () >> liftIO getLine
-  mainLoop
   where
+    continue = pressAnyKey >> mainLoop
     menuCrud = [
       (MMWorkoutStatus, "Information on current workout "),
       (MMUpdate,        "Update an exercise in current workout"),
       (MMAdd,           "Add New exercise"),
       (MMRemove,        "Remove exercise"),
-      (MMSave,          "Write to disk"),
       (MMQuit,          "Quit")]
 
 
 fromList = undefined
 
-printWorkout :: StateT FitState IO ()
-printWorkout = fmap proficiencies get >>= DT.mapM printExer >> return ()
-  where printExer (Proficiency exer (weight, reps)) = io "{}: {}@{}\n" ((left 20 ' ' $ exerLabel exer), reps,weight)
+printWorkout :: (Monad m, MonadIO m) => FitStateT m ()
+printWorkout = do
+  profs <- exercisesWithProfs currentWorkoutList
+  when (null profs) $ io "You do not have any exercises set up in your workout.\n" ()
+  mapM_ printExer profs
+  where
+    printExer (Exercise label, (Just (Proficiency weight reps))) = io "{}: {}@{}\n" ((left 20 ' ' label), reps,weight)
+    printExer (Exercise label, Nothing) = io "{}: (none)\n" (Only (left 20 ' '  label))
+
+exercisesWithProfs :: Monad m => FitStateT m [Exercise] -> FitStateT m [(Exercise, Maybe Proficiency)]
+exercisesWithProfs f = f >>= mapM addProf
+  where
+    addProf exer@(Exercise label) = do
+      prof <- getProficiency label
+      return (exer, prof)
+
+
  
-updateExercise :: StateT FitState IO () 
+updateExercise :: (MonadIO m, Monad m) => FitStateT m ()
 updateExercise = do
-  state <- get
-  let profs = proficiencies state                    :: Proficiencies
-      exers = exercises state `M.intersection` profs :: Exercises
-  
-  mexer <- liftIO $ inputMenu "Current Workout" (M.toList $ M.map exerLabel (workout state)) :: StateT FitState IO (Maybe T.Text)
+  workout <- currentWorkoutList
+
+  mexer <- liftIO $ inputMenu "Update Exercise" $ map (\(Exercise label) -> (label, label)) workout
   case mexer of
     Nothing -> io "You don't have any exercises set up for your workout.\n" ()
-    Just key -> do
-      case M.lookup key profs of
+    Just exer -> do
+      mprof <- getProficiency exer
+      case mprof of
         Nothing -> io "You have never done this exercise.\n" ()
-        Just (Proficiency exer (weight, reps))-> io "For {}, you can do {} reps at {} pounds.\n" (exerLabel exer, reps, weight)
-      newweight <- prompt "New weight:" () :: StateT FitState IO Int
-      newreps   <- prompt "New reps:" () :: StateT FitState IO Int
-      modify (\s -> s { proficiencies = M.insert key (Proficiency (fromJustNote "updateExercise" $ M.lookup key (exercises state)) (newweight, newreps)) profs })
+        Just (Proficiency weight reps)-> io "You can currently do {} reps at {} pounds.\n" (reps, weight)
+      newreps   <- prompt "New reps:" ()
+      newweight <- prompt "New weight:" ()
+      updateProficiency exer newreps newweight
 
+addNewExercise :: (MonadIO m, Monad m) => FitStateT m ()
+addNewExercise = do
+  name <- prompt "Exercise Name:" ()
+  prof <- getProficiency name
+  if isJust prof 
+    then return ()
+    else createExercise name 
 
-addExercise = error "addExercise"
-removeExercise = error "removeExercise"
-saveExercises = error "saveExercises"
+removeExercise :: (MonadIO m, Monad m) => FitStateT m ()  
+removeExercise = do
+  exercises <- exerciseList
+  mexer <- liftIO $ inputMenu "Known Exercises" $ map (\(Exercise label) -> (label, label)) exercises
+  case mexer of
+    Nothing -> io "You don't have any exercises in this database yet to delete.\n" ()
+    Just exer -> do
+      confirm <- prompt "Are you sure? (type yes):" ()
+      if confirm /= ("yes" :: String)
+        then return ()
+        else deleteExercise exer
 
---menuExercises :: Menu T.Text
---menuExercises = fromList "Exercise List" $ map (\(Exercise key label) -> (key,label)) exerciseList
-
+addExerciseToWorkout = undefined
+  
+removeExerciseFromWorkout = undefined
+  
+  
 {-
 printWiki :: [(String, Int)] -> IO ()
 printWiki = mapM_ printfunc
@@ -133,7 +135,7 @@ printWiki = mapM_ printfunc
 
 -}
 
-
+{-
 exerciseList :: Exercises
 exerciseList = M.mapWithKey (\k l -> Exercise k l) $ M.fromList $ [
   ("squats"          ,"Squats"),
@@ -150,4 +152,4 @@ exerciseList = M.mapWithKey (\k l -> Exercise k l) $ M.fromList $ [
   ("crunches"        ,"Crunches")]
 
 
-
+-}
