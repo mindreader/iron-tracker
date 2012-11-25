@@ -2,19 +2,13 @@
 
 module Main where
 
-import Control.Monad.State
-import Data.Traversable as DT
-import IO
-import Data.Monoid
-import qualified Data.Map as M
-import System.Exit (exitSuccess)
-import qualified Data.Text as T
+import Control.Monad.IO.Class
+import Control.Monad (when)
 import Menu
-import Safe (fromJustNote)
+import Data.Maybe (isJust)
 
---main = (fmap (zip exerList) . mapM query) exerList >>= printWiki
-
-
+import IO
+import FitState
 
 --This one estimates suprisingly low on low rep ranges.
 --oconnor :: Int -> Int -> Int -> Int
