@@ -10,10 +10,13 @@ import Data.Text.Format as Fmt
 
 import Data.Maybe
 import qualified Data.Map as M
-import Safe (atMay)
+import Safe (atMay, readMay)
 import Data.Default
 
 import Control.Monad (when)
+
+import Data.Char (isAlphaNum)
+import Data.List (findIndex)
 
 
 data MenuOptions = MenuOptions {
@@ -55,16 +58,18 @@ inputMenu opts title menuable = loop
       items' -> do
         display title items'
         when (quitOption opts) $ Fmt.print "q. Quit\n" ()
-        mkey <- fmap (listToMaybe . fmap fst . reads) getLine -- TODO This won't work for strings or chars!
-        case mkey of
-          Nothing -> loop
-          Just key -> maybe loop (return . MenuInput . menuKey) $ items' `atMay` (key - 1)
+        key <- getChar
+        Fmt.print "\n" ()
+        if (quitOption opts && (key == 'q'))
+          then return MenuQuit
+          else maybe loop (return . MenuInput . menuKey) $ items' `atMay` (maybe 0 id (findIndex (==key) inputChars))
 
     items = (M.elems . menuItems . toMenu $ menuable)
 
     display :: T.Text -> [MenuItem a] -> IO ()
     display title items = do
       Fmt.print "\n{}\n" (Only title)
-      mapM_ printLine (zip [(1::Int)..] items)
+      mapM_ printLine (zip inputChars items)
 
     printLine (i, (MenuItem _ label)) = Fmt.print "{}. {}\n" (i,label)
+    inputChars = filter (/= 'q') $ filter isAlphaNum $ ['1'..'9'] ++ ['0'] ++ ['a'..'z'] ++ ['A'..'Z']
