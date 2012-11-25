@@ -60,7 +60,7 @@ inputMenu opts title menuable = loop
         when (quitOption opts) $ Fmt.print "q. Quit\n" ()
         key <- getChar
         Fmt.print "\n" ()
-        if (quitOption opts && (key == 'q'))
+        if ((quitOption opts && (key == 'q')) || (not $ isJust $ findIndex (==key) inputChars))
           then return MenuQuit
           else maybe loop (return . MenuInput . menuKey) $ items' `atMay` (maybe 0 id (findIndex (==key) inputChars))
 
