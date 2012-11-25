@@ -50,20 +50,27 @@ $(deriveSafeCopy 0 'base ''Proficiency)
 $(makeAcidic ''FitState ['myUpdate, 'myQuery])
 
 
-runFitStateT :: MonadIO m => FitStateT m a -> m ()
-runFitStateT (FitStateT f) = fitStateOpen >>= execStateT f >>= fitStateSave
+runFitStateT :: MonadIO m => FitStateT m a -> m a
+runFitStateT (FitStateT f) = do
+  st <- fitStateOpen
+  (res, st') <- runStateT f st
+  fitStateSave st'
+  return res
  
 
 fitStateOpen :: MonadIO m => m FitState
 fitStateOpen = liftIO $ do
   db <- openLocalState (FitState M.empty)
-  query db MyQuery
+  res <- query db MyQuery
+  closeAcidState db
+  return res
 
 
 fitStateSave :: MonadIO m => FitState -> m ()
 fitStateSave st = liftIO $ do
   db <- openLocalState (FitState M.empty)
   update db (MyUpdate st)
+  closeAcidState db
 
 
 
