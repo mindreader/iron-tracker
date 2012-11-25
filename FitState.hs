@@ -19,6 +19,7 @@ import qualified Data.Text as T
 newtype FitStateT m a = FitStateT (StateT FitState m a)
   deriving (Monad, MonadIO, MonadState FitState)
 
+ 
 newtype FitState = FitState (M.Map T.Text FitInfo) deriving (Data, Typeable)
 
 data FitInfo = FitInfo {
@@ -49,36 +50,33 @@ $(deriveSafeCopy 0 'base ''Proficiency)
 $(makeAcidic ''FitState ['myUpdate, 'myQuery])
 
 
-fitStateOpen :: MonadIO m => FitStateT m ()
-fitStateOpen = do
-  db <- liftIO $ openLocalState (FitState M.empty)
-  (liftIO $ query db MyQuery) >>= put
-
-
 runFitStateT :: MonadIO m => FitStateT m a -> m ()
-runFitStateT f = fitStateOpen >> f >> fitStateSave >> return ()
+runFitStateT (FitStateT f) = fitStateOpen >>= execStateT f >>= fitStateSave
+ 
+
+fitStateOpen :: MonadIO m => m FitState
+fitStateOpen = liftIO $ do
+  db <- openLocalState (FitState M.empty)
+  query db MyQuery
 
 
+fitStateSave :: MonadIO m => FitState -> m ()
+fitStateSave st = liftIO $ do
+  db <- openLocalState (FitState M.empty)
+  update db (MyUpdate st)
 
-fitStateSave :: MonadIO m => FitStateT m ()
-fitStateSave = do
-  db <- liftIO $ openLocalState (FitState M.empty)
-  st <- get
-  liftIO $ (update db (MyUpdate st))
+
 
 exerciseList :: Monad m => FitStateT m [Exercise]
 exerciseList = do
   FitState st <- get
   return $ map exercise $ M.elems st
 
-  
-
 currentWorkoutList :: Monad m => FitStateT m [Exercise]
 currentWorkoutList = do
   FitState st <- get
   return $ map exercise . filter inWorkout . M.elems $ st
   
-
 addExercise :: Monad m => T.Text -> T.Text -> FitStateT m ()
 addExercise key label = modify (\(FitState st) ->  FitState $ M.insert key (FitInfo (Exercise key label) Nothing False) st)
 
