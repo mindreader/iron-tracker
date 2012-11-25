@@ -2,8 +2,9 @@
 
 module FitState where
 
+import Prelude hiding (catch)
 import Data.Acid
-import Data.Acid.Advanced
+import Data.Acid.Local
 
 import Data.SafeCopy
 
@@ -15,6 +16,10 @@ import Control.Monad.Reader
 
 import qualified Data.Map as M
 import qualified Data.Text as T
+
+import System.Directory (getHomeDirectory, removeDirectoryRecursive)
+
+import Control.Exception (catch)
 
 newtype FitStateT m a = FitStateT (StateT FitState m a)
   deriving (Monad, MonadIO, MonadState FitState)
@@ -53,11 +58,18 @@ runFitStateT (FitStateT f) = do
   (res, st') <- runStateT f st
   fitStateSave st'
   return res
+
+
+prepareStateDir = do
+  statedir <- fmap (++ "/.fitstate") $ getHomeDirectory
+  return $ statedir
+
  
 
 fitStateOpen :: MonadIO m => m FitState
 fitStateOpen = liftIO $ do
-  db <- openLocalState (FitState M.empty)
+  statedir <- prepareStateDir
+  db <- openLocalStateFrom statedir (FitState M.empty)
   res <- query db MyQuery
   closeAcidState db
   return res
@@ -65,9 +77,12 @@ fitStateOpen = liftIO $ do
 
 fitStateSave :: MonadIO m => FitState -> m ()
 fitStateSave st = liftIO $ do
-  db <- openLocalState (FitState M.empty)
+  statedir <- prepareStateDir
+  db <- openLocalStateFrom statedir (FitState M.empty)
   update db (MyUpdate st)
-  closeAcidState db
+  createArchive db
+  createCheckpointAndClose db
+  (removeDirectoryRecursive $ statedir ++ "/Archive")  `catch` (\e -> do return (e :: IOError) ;  return ())
 
 
 
