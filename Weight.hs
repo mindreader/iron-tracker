@@ -45,6 +45,7 @@ mainLoop = do
         MMDisInclude    -> removeExerciseFromWorkout
         MMUpdate        -> updateExercise
         MMAdd           -> addNewExercise
+        MMRemove        -> removeOldExercise
       continue
 
   where
@@ -103,8 +104,8 @@ addNewExercise = do
     then return ()
     else createExercise name 
 
-removeExercise :: (MonadIO m, Monad m) => FitStateT m ()  
-removeExercise = do
+removeOldExercise :: (MonadIO m, Monad m) => FitStateT m ()
+removeOldExercise = do
   exercises <- exerciseList
   mexer <- liftIO $ inputMenu def "Known Exercises" $ map (\(Exercise label) -> (label, label)) exercises
   case mexer of
