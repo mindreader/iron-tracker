@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving, TemplateHaskell, DeriveDataTypeable, TypeFamilies #-}
 
-module Main where
+module FitState where
 
 import Data.Acid
 import Data.Acid.Advanced
