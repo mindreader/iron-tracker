@@ -28,10 +28,7 @@ data FitInfo = FitInfo {
   inWorkout :: Bool
 } deriving (Data, Typeable)
 
-data Exercise = Exercise {
-  exerKey   :: T.Text,
-  exerLabel :: T.Text
-} deriving (Show, Data, Typeable)
+newtype Exercise = Exercise T.Text deriving (Show, Data, Typeable)
 
 type Weight = Int
 type Reps   = Int
@@ -84,11 +81,11 @@ currentWorkoutList = do
   FitState st <- get
   return $ map exercise . filter inWorkout . M.elems $ st
   
-addExercise :: Monad m => T.Text -> T.Text -> FitStateT m ()
-addExercise key label = modify (\(FitState st) ->  FitState $ M.insert key (FitInfo (Exercise key label) Nothing False) st)
+createExercise :: Monad m => T.Text -> FitStateT m ()
+createExercise label = modify (\(FitState st) ->  FitState $ M.insert label (FitInfo (Exercise label) Nothing False) st)
 
-remExercise :: Monad m => T.Text -> FitStateT m ()
-remExercise key = modify (\(FitState st) -> FitState $ M.delete key st)
+deleteExercise :: Monad m => T.Text -> FitStateT m ()
+deleteExercise label = modify (\(FitState st) -> FitState $ M.delete label st)
 
 addToWorkout :: Monad m => T.Text -> FitStateT m ()
 addToWorkout key = modify (\(FitState st) -> FitState $ M.adjust (\ fi -> fi { inWorkout = True }) key st)
