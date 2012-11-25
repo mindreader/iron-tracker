@@ -6,10 +6,12 @@ Format(..), Only(..), Shown(..), right, left, liftIO
 
 import Control.Monad.IO.Class
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import Data.Text.Format as Fmt
 import Safe
 
 import System.IO (hFlush, stdout)
+import System.Console.Haskeline
 
 
 io fmt = liftIO . Fmt.print fmt
@@ -28,12 +30,13 @@ instance FromString T.Text where
 instance FromString String where
   fromString = Just
 
-prompt fmt args = liftIO loop
+prompt fmt args = loop
   where
     loop = do
-      Fmt.print fmt args
-      hFlush stdout
-      mx <- getLine
-      case fromString mx of
+      mx <- getInputLine $ TL.unpack $  Fmt.format fmt args
+      case mx of
         Nothing -> loop
-        Just x -> return x
+        Just x -> do
+          case fromString x of
+            Nothing -> loop
+            Just x' -> return x'

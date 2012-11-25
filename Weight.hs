@@ -15,6 +15,8 @@ import FitState
 
 import System.IO (stdout, stdin, hSetBuffering, BufferMode(..))
 
+import System.Console.Haskeline
+
 --This one estimates suprisingly low on low rep ranges.
 --oconnor :: Int -> Int -> Int -> Int
 --oconnor r w r' = round $ (fromIntegral w) * (1+(0.025*(fromIntegral r))) / (1+(0.025 * (fromIntegral r')))
@@ -31,7 +33,7 @@ main :: IO ()
 main = do
   hSetBuffering stdin NoBuffering
   hSetBuffering stdout LineBuffering
-  runFitStateT mainLoop
+  runInputT defaultSettings (runFitStateT mainLoop)
 
 
 mainLoop :: MonadIO m => FitStateT m ()
