@@ -1,17 +1,36 @@
+{-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances  #-}
 module IO (
-io, prompt, Format(..), Only(..), Shown(..), right, left, liftIO
+io, prompt, pressAnyKey,
+Format(..), Only(..), Shown(..), right, left, liftIO
 )  where 
 
 import Control.Monad.IO.Class
+import qualified Data.Text as T
 import Data.Text.Format as Fmt
-import Data.Maybe (listToMaybe)
+import Safe
+
 
 io fmt = liftIO . Fmt.print fmt
 
+pressAnyKey = liftIO $ Fmt.print "Press any key to continue\n" () >> getChar >> return ()
+
+class FromString a where
+  fromString :: String -> Maybe a
+
+instance FromString Int where
+  fromString = readMay
+
+instance FromString T.Text where
+  fromString = Just . T.pack
+
+instance FromString String where
+  fromString = Just
+
 prompt fmt args = liftIO loop
-  where loop = do
-          Fmt.print fmt args
-          x <- fmap (listToMaybe . fmap fst . reads) getLine
-          case x of
-            Nothing -> loop
-            Just x' -> return x'
+  where
+    loop = do
+      Fmt.print fmt args
+      mx <- getLine
+      case fromString mx of
+        Nothing -> loop
+        Just x -> return x
