@@ -9,10 +9,12 @@ import qualified Data.Text as T
 import Data.Text.Format as Fmt
 import Safe
 
+import System.IO (hFlush, stdout)
+
 
 io fmt = liftIO . Fmt.print fmt
 
-pressAnyKey = liftIO $ Fmt.print "Press any key to continue\n" () >> getChar >> return ()
+pressAnyKey = liftIO $ Fmt.print "Press any key to continue\n" () >> hFlush stdout >> getChar >> return ()
 
 class FromString a where
   fromString :: String -> Maybe a
@@ -30,6 +32,7 @@ prompt fmt args = liftIO loop
   where
     loop = do
       Fmt.print fmt args
+      hFlush stdout
       mx <- getLine
       case fromString mx of
         Nothing -> loop

@@ -12,6 +12,8 @@ import Data.Default
 import IO
 import FitState
 
+import System.IO (stdout, stdin, hSetBuffering, BufferMode(..))
+
 --This one estimates suprisingly low on low rep ranges.
 --oconnor :: Int -> Int -> Int -> Int
 --oconnor r w r' = round $ (fromIntegral w) * (1+(0.025*(fromIntegral r))) / (1+(0.025 * (fromIntegral r')))
@@ -28,7 +30,10 @@ data MainMenuCommand = MMWorkoutStatus | MMUpdate | MMInclude | MMDisInclude | M
 
 
 main :: IO ()
-main = runFitStateT mainLoop
+main = do
+  hSetBuffering stdin NoBuffering
+  hSetBuffering stdout LineBuffering
+  runFitStateT mainLoop
 
 
 mainLoop :: MonadIO m => FitStateT m ()
