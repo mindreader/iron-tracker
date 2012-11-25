@@ -98,3 +98,9 @@ remFromWorkout key = modify (\(FitState st) -> FitState $ M.adjust (\ fi -> fi {
 
 updateProficiency :: Monad m => T.Text -> Int -> Int -> FitStateT m ()
 updateProficiency key reps weight = modify (\(FitState st) -> FitState $ M.adjust (\fi -> fi { proficiency = Just (Proficiency reps weight) }) key st)
+
+
+getProficiency :: Monad m => T.Text -> FitStateT m (Maybe Proficiency)
+getProficiency key = do
+  FitState st <- get
+  return . join . fmap proficiency . M.lookup key $ st
