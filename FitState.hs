@@ -28,7 +28,7 @@ data FitInfo = FitInfo {
   inWorkout :: Bool
 } deriving (Data, Typeable)
 
-newtype Exercise = Exercise T.Text deriving (Show, Data, Typeable)
+newtype Exercise = Exercise T.Text deriving (Eq, Show, Data, Typeable)
 
 type Weight = Int
 type Reps   = Int

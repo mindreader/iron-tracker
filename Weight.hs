@@ -6,6 +6,8 @@ import Control.Monad.IO.Class
 import Control.Monad (when)
 import Menu
 import Data.Maybe (isJust)
+import Data.List
+import Data.Default
 
 import IO
 import FitState
@@ -22,7 +24,7 @@ import FitState
 --progression :: Int -> [Int]
 --progression = reverse . take 6 . iterate (\x -> round $ fromIntegral x * 0.95)
 
-data MainMenuCommand = MMWorkoutStatus | MMUpdate | MMAdd | MMRemove | MMInclude | MMDisInclude | MMQuit deriving (Eq, Ord)
+data MainMenuCommand = MMWorkoutStatus | MMUpdate | MMInclude | MMDisInclude | MMAdd | MMRemove deriving (Eq, Ord)
 
 
 main :: IO ()
@@ -31,26 +33,29 @@ main = runFitStateT mainLoop
 
 mainLoop :: MonadIO m => FitStateT m ()
 mainLoop = do
-  command <- liftIO $ inputMenu "Main Menu" menuCrud
+  command <- liftIO $ inputMenu (def { quitOption = True }) "Main Menu" menuCrud
 
   case command of
-    Nothing -> mainLoop
-    Just command' -> case command' of
-      MMWorkoutStatus -> printWorkout >> continue
-      MMUpdate        -> updateExercise >> continue
-      MMAdd           -> addNewExercise >> continue
-      MMInclude       -> addExerciseToWorkout >> continue
-      MMDisInclude    -> removeExerciseFromWorkout >> continue
-      MMQuit          -> return ()
+    MenuError -> mainLoop
+    MenuQuit -> return ()
+    MenuInput command' -> do
+      case command' of
+        MMWorkoutStatus -> printWorkout
+        MMInclude       -> addExerciseToWorkout
+        MMDisInclude    -> removeExerciseFromWorkout
+        MMUpdate        -> updateExercise
+        MMAdd           -> addNewExercise
+      continue
 
   where
     continue = pressAnyKey >> mainLoop
     menuCrud = [
       (MMWorkoutStatus, "Information on current workout "),
       (MMUpdate,        "Update an exercise in current workout"),
+      (MMInclude,       "Add exercise to workout"),
+      (MMDisInclude,    "Remove exercise from workout"),
       (MMAdd,           "Add New exercise"),
-      (MMRemove,        "Remove exercise"),
-      (MMQuit,          "Quit")]
+      (MMRemove,        "Remove exercise")]
 
 
 fromList = undefined
@@ -77,10 +82,10 @@ updateExercise :: (MonadIO m, Monad m) => FitStateT m ()
 updateExercise = do
   workout <- currentWorkoutList
 
-  mexer <- liftIO $ inputMenu "Update Exercise" $ map (\(Exercise label) -> (label, label)) workout
+  mexer <- liftIO $ inputMenu def "Update Exercise" $ map (\(Exercise label) -> (label, label)) workout
   case mexer of
-    Nothing -> io "You don't have any exercises set up for your workout.\n" ()
-    Just exer -> do
+    MenuError -> io "You don't have any exercises set up for your workout.\n" ()
+    MenuInput exer -> do
       mprof <- getProficiency exer
       case mprof of
         Nothing -> io "You have never done this exercise.\n" ()
@@ -88,6 +93,7 @@ updateExercise = do
       newreps   <- prompt "New reps:" ()
       newweight <- prompt "New weight:" ()
       updateProficiency exer newreps newweight
+    MenuQuit -> return ()
 
 addNewExercise :: (MonadIO m, Monad m) => FitStateT m ()
 addNewExercise = do
@@ -100,18 +106,40 @@ addNewExercise = do
 removeExercise :: (MonadIO m, Monad m) => FitStateT m ()  
 removeExercise = do
   exercises <- exerciseList
-  mexer <- liftIO $ inputMenu "Known Exercises" $ map (\(Exercise label) -> (label, label)) exercises
+  mexer <- liftIO $ inputMenu def "Known Exercises" $ map (\(Exercise label) -> (label, label)) exercises
   case mexer of
-    Nothing -> io "You don't have any exercises in this database yet to delete.\n" ()
-    Just exer -> do
+    MenuError -> io "You don't have any exercises in this database yet to delete.\n" ()
+    MenuInput exer -> do
       confirm <- prompt "Are you sure? (type yes):" ()
       if confirm /= ("yes" :: String)
         then return ()
         else deleteExercise exer
+    MenuQuit -> return ()
 
-addExerciseToWorkout = undefined
+addExerciseToWorkout :: (MonadIO m, Monad m) => FitStateT m ()  
+addExerciseToWorkout = do
+  exercises <- exerciseList
+  workout <- currentWorkoutList
+  let exercisesnotinworkout = exercises \\ workout
+  mexer <- liftIO $ inputMenu def "Exercises Not In Workout" $ map (\(Exercise label) -> (label, label)) exercisesnotinworkout
+  case mexer of
+    MenuError -> io "You already have every known exercise in your workout.\n" ()
+    MenuInput exer -> do
+      addToWorkout exer
+    MenuQuit -> return ()
   
-removeExerciseFromWorkout = undefined
+removeExerciseFromWorkout :: (MonadIO m, Monad m) => FitStateT m ()  
+removeExerciseFromWorkout = do
+  workout <- currentWorkoutList
+  mexer <- liftIO $ inputMenu def "Exercises Not In Workout" $ map (\(Exercise label) -> (label, label)) workout
+  case mexer of
+    MenuError -> io "You already have every known exercise in your workout.\n" ()
+    MenuInput exer -> do
+      remFromWorkout exer
+      io "{} has been removed from your workout.\n" (Only exer)
+    MenuQuit -> return ()
+ 
+
   
   
 {-

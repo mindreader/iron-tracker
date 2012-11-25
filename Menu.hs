@@ -11,13 +11,29 @@ import Data.Text.Format as Fmt
 import Data.Maybe
 import qualified Data.Map as M
 import Safe (atMay)
+import Data.Default
+
+import Control.Monad (when)
+
+
+data MenuOptions = MenuOptions {
+  quitOption :: Bool
+}
+
+instance Default MenuOptions where
+  def = MenuOptions False
 
 
 class Menuable a b | b -> a where
   toMenu :: a -> Menu b
 
+
+--instance Menuable [T.Text] T.Text where
+--  toMenu = Menu . M.map (\v -> MenuItem v v) . M.fromList . map (\x -> (x,x))
+
 instance (Ord a) => Menuable [(a, T.Text)] a where
-  toMenu list = Menu $ M.mapWithKey (\x y -> MenuItem x y) $ M.fromList $ list
+  toMenu = Menu . M.mapWithKey (\k v -> MenuItem k v) . M.fromList
+
 
 
 type MenuTitle = T.Text
@@ -29,24 +45,26 @@ data MenuItem a = MenuItem {
   menuTitle :: T.Text
 }
 
+data MenuResult b = MenuQuit | MenuInput b | MenuError
 
-inputMenu :: Menuable a b => T.Text -> a -> IO (Maybe b)
-inputMenu title menuable = loop
+inputMenu :: Menuable a b => MenuOptions -> T.Text -> a -> IO (MenuResult b)
+inputMenu opts title menuable = loop
   where
     loop = case items of
-      [] -> return Nothing
+      [] -> return MenuError
       items' -> do
         display title items'
-        mkey <- fmap (listToMaybe . fmap fst . reads) getLine
+        when (quitOption opts) $ Fmt.print "q. Quit\n" ()
+        mkey <- fmap (listToMaybe . fmap fst . reads) getLine -- TODO This won't work for strings or chars!
         case mkey of
           Nothing -> loop
-          Just key -> maybe loop (return . Just . menuKey) $ items' `atMay` key
+          Just key -> maybe loop (return . MenuInput . menuKey) $ items' `atMay` (key - 1)
 
     items = (M.elems . menuItems . toMenu $ menuable)
 
     display :: T.Text -> [MenuItem a] -> IO ()
     display title items = do
       Fmt.print "\n{}\n" (Only title)
-      mapM_ printLine (zip [(0::Int)..] items)
+      mapM_ printLine (zip [(1::Int)..] items)
 
     printLine (i, (MenuItem _ label)) = Fmt.print "{}. {}\n" (i,label)
