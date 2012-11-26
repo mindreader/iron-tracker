@@ -40,7 +40,7 @@ newtype Exercise = Exercise T.Text deriving (Eq, Show, Data, Typeable)
 
 instance Menuable [Exercise] where
   type MenuKey [Exercise] = T.Text
-  toMenu a = Menu . M.map (\(Exercise v) -> MenuItem v v) . M.fromList . map (\exer@(Exercise x) -> (x,exer)) $ a
+  toMenu = Menu . M.map (\(Exercise v) -> MenuItem v v) . M.fromList . map (\exer@(Exercise x) -> (x,exer))
 
 
 type Weight = Int

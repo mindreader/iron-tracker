@@ -27,7 +27,7 @@ class Menuable a where
 
 instance Menuable [T.Text] where
   type MenuKey [T.Text] = T.Text
-  toMenu a = Menu . M.map (\v -> MenuItem v v) . M.fromList . map (\x -> (x,x)) $ a
+  toMenu = Menu . M.map (\v -> MenuItem v v) . M.fromList . map (\x -> (x,x))
 
 instance (Ord a) => Menuable [(a, T.Text)] where
   type MenuKey [(a, T.Text)] = a
