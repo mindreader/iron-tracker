@@ -21,16 +21,16 @@ import Data.List (findIndex)
 
 
 class Menuable a where
-  type Key a
-  toMenu :: a -> Menu (Key a)
+  type MenuKey a
+  toMenu :: a -> Menu (MenuKey a)
 
 
 instance Menuable [T.Text] where
-  type Key [T.Text] = T.Text
+  type MenuKey [T.Text] = T.Text
   toMenu a = Menu . M.map (\v -> MenuItem v v) . M.fromList . map (\x -> (x,x)) $ a
 
 instance (Ord a) => Menuable [(a, T.Text)] where
-  type Key [(a, T.Text)] = a
+  type MenuKey [(a, T.Text)] = a
   toMenu = Menu . M.mapWithKey (\k v -> MenuItem k v) . M.fromList
 
 
@@ -56,7 +56,7 @@ instance Default MenuOptions where
 
 data MenuResult b = MenuQuit | MenuInput b | MenuError
 
-inputMenu :: Menuable a => MenuOptions -> T.Text -> a -> IO (MenuResult (Key a))
+inputMenu :: Menuable a => MenuOptions -> T.Text -> a -> IO (MenuResult (MenuKey a))
 inputMenu opts title menuable = loop
   where
     loop = case items of

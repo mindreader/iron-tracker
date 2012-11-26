@@ -39,7 +39,7 @@ data FitInfo = FitInfo {
 newtype Exercise = Exercise T.Text deriving (Eq, Show, Data, Typeable)
 
 instance Menuable [Exercise] where
-  type Key [Exercise] = T.Text
+  type MenuKey [Exercise] = T.Text
   toMenu a = Menu . M.map (\(Exercise v) -> MenuItem v v) . M.fromList . map (\exer@(Exercise x) -> (x,exer)) $ a
 
 
