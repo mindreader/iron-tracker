@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving, TemplateHaskell, DeriveDataTypeable, TypeFamilies #-}
+{-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving, TemplateHaskell, DeriveDataTypeable, TypeFamilies, FlexibleInstances  #-}
 
 module FitState where
 
@@ -21,6 +21,9 @@ import System.Directory (getHomeDirectory, removeDirectoryRecursive)
 
 import Control.Exception (catch)
 
+
+import Menu
+
 newtype FitStateT m a = FitStateT (StateT FitState m a)
   deriving (Monad, MonadIO, MonadState FitState)
 
@@ -34,6 +37,11 @@ data FitInfo = FitInfo {
 } deriving (Data, Typeable)
 
 newtype Exercise = Exercise T.Text deriving (Eq, Show, Data, Typeable)
+
+instance Menuable [Exercise] where
+  type Key [Exercise] = T.Text
+  toMenu a = Menu . M.map (\(Exercise v) -> MenuItem v v) . M.fromList . map (\exer@(Exercise x) -> (x,exer)) $ a
+
 
 type Weight = Int
 type Reps   = Int
