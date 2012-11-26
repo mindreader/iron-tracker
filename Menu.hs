@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, TypeFamilies #-}
 
 module Menu where
 
@@ -19,6 +19,34 @@ import Data.Char (isAlphaNum)
 import Data.List (findIndex)
 
 
+
+class Menuable a where
+  type Key a
+  toMenu :: a -> Menu (Key a)
+
+
+instance Menuable [T.Text] where
+  type Key [T.Text] = T.Text
+  toMenu a = Menu . M.map (\v -> MenuItem v v) . M.fromList . map (\x -> (x,x)) $ a
+
+instance (Ord a) => Menuable [(a, T.Text)] where
+  type Key [(a, T.Text)] = a
+  toMenu = Menu . M.mapWithKey (\k v -> MenuItem k v) . M.fromList
+
+
+
+
+type MenuTitle = T.Text
+data Menu a = Menu {
+  menuItems :: M.Map a (MenuItem a)
+} deriving Show
+
+data MenuItem a = MenuItem {
+  menuKey :: a,
+  menuTitle :: T.Text
+} deriving Show
+
+
 data MenuOptions = MenuOptions {
   quitOption :: Bool
 }
@@ -26,31 +54,9 @@ data MenuOptions = MenuOptions {
 instance Default MenuOptions where
   def = MenuOptions False
 
-
-class Menuable a b | b -> a where
-  toMenu :: a -> Menu b
-
-
---instance Menuable [T.Text] T.Text where
---  toMenu = Menu . M.map (\v -> MenuItem v v) . M.fromList . map (\x -> (x,x))
-
-instance (Ord a) => Menuable [(a, T.Text)] a where
-  toMenu = Menu . M.mapWithKey (\k v -> MenuItem k v) . M.fromList
-
-
-
-type MenuTitle = T.Text
-data Menu a = Menu {
-  menuItems :: M.Map a (MenuItem a)
-}
-data MenuItem a = MenuItem {
-  menuKey :: a,
-  menuTitle :: T.Text
-}
-
 data MenuResult b = MenuQuit | MenuInput b | MenuError
 
-inputMenu :: Menuable a b => MenuOptions -> T.Text -> a -> IO (MenuResult b)
+inputMenu :: Menuable a => MenuOptions -> T.Text -> a -> IO (MenuResult (Key a))
 inputMenu opts title menuable = loop
   where
     loop = case items of
