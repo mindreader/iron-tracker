@@ -109,7 +109,7 @@ remFromWorkout :: Monad m => T.Text -> FitStateT m ()
 remFromWorkout key = modify (\(FitState st) -> FitState $ M.adjust (\ fi -> fi { inWorkout = False }) key st)
 
 updateProficiency :: Monad m => T.Text -> Int -> Int -> FitStateT m ()
-updateProficiency key reps weight = modify (\(FitState st) -> FitState $ M.adjust (\fi -> fi { proficiency = Just (Proficiency reps weight) }) key st)
+updateProficiency key reps weight = modify (\(FitState st) -> FitState $ M.adjust (\fi -> fi { proficiency = Just (Proficiency weight reps) }) key st)
 
 
 getProficiency :: Monad m => T.Text -> FitStateT m (Maybe Proficiency)
