@@ -4,3 +4,4 @@
 .gitignore
 state
 iron-tracker
+dist/
