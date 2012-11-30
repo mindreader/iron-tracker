@@ -5,6 +5,7 @@ Format(..), Only(..), Shown(..), right, left, liftIO
 )  where 
 
 import Control.Monad.IO.Class
+import Control.Monad.Trans (lift)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Data.Text.Format as Fmt
@@ -33,7 +34,7 @@ instance FromString String where
 prompt fmt args = loop
   where
     loop = do
-      mx <- getInputLine $ TL.unpack $  Fmt.format fmt args
+      mx <- lift . getInputLine . TL.unpack $ Fmt.format fmt args
       case mx of
         Nothing -> loop
         Just x -> do

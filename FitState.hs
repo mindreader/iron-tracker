@@ -21,14 +21,14 @@ import System.Directory (getHomeDirectory, removeDirectoryRecursive)
 
 import Control.Exception (catch)
 
-
 import Menu
 
 newtype FitStateT m a = FitStateT (StateT FitState m a)
-  deriving (Monad, MonadIO, MonadState FitState)
+  deriving (Monad, MonadIO, MonadState FitState, MonadTrans)
 
  
 newtype FitState = FitState (M.Map T.Text FitInfo) deriving (Data, Typeable)
+
 
 data FitInfo = FitInfo {
   exercise :: Exercise,

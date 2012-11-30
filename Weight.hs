@@ -15,7 +15,7 @@ import FitState
 
 import System.IO (stdout, stdin, hSetBuffering, BufferMode(..))
 
-import System.Console.Haskeline
+import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
 
 --This one estimates suprisingly low on low rep ranges.
 --oconnor :: Int -> Int -> Int -> Int
@@ -36,7 +36,7 @@ main = do
   runInputT defaultSettings (runFitStateT mainLoop)
 
 
-mainLoop :: MonadIO m => FitStateT m ()
+mainLoop :: (MonadException m) => FitStateT (InputT m) ()
 mainLoop = do
   command <- liftIO $ inputMenu (def { quitOption = True }) "Main Menu" menuCrud
 
@@ -68,7 +68,7 @@ mainLoop = do
 
 fromList = undefined
 
-printWorkout :: (Monad m, MonadIO m) => (Proficiency -> Proficiency) -> FitStateT m ()
+printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT (InputT m) ()
 printWorkout f = do
   profs <- exercisesWithProfs currentWorkoutList
   when (null profs) $ io "You do not have any exercises set up in your workout.\n" ()
@@ -79,14 +79,14 @@ printWorkout f = do
     printExer (Exercise label, Nothing) = io "{}: (none)\n" (Only (left 20 ' '  label))
 
 
-adjustWorkoutByReps :: (Monad m, MonadIO m) => FitStateT m ()
+adjustWorkoutByReps :: (MonadException m) => FitStateT (InputT m) ()
 adjustWorkoutByReps = do
   newreps <- prompt "Reps you want to do:" ()
   printWorkout $ \(Proficiency weight reps) -> Proficiency (epley reps weight newreps) newreps
 
 --epley r w r' = round $ ((fromIntegral w * fromIntegral r / 30) + fromIntegral w) * (30 / (fromIntegral r'+30))
 
-exercisesWithProfs :: Monad m => FitStateT m [Exercise] -> FitStateT m [(Exercise, Maybe Proficiency)]
+exercisesWithProfs :: Monad m => FitStateT (InputT m) [Exercise] -> FitStateT (InputT m) [(Exercise, Maybe Proficiency)]
 exercisesWithProfs f = f >>= mapM addProf
   where
     addProf exer@(Exercise label) = do
@@ -95,7 +95,7 @@ exercisesWithProfs f = f >>= mapM addProf
 
 
  
-updateExercise :: (MonadIO m, Monad m) => FitStateT m ()
+updateExercise :: (MonadException m) => FitStateT (InputT m) ()
 updateExercise = do
   workout <- currentWorkoutList
 
@@ -112,7 +112,7 @@ updateExercise = do
       updateProficiency exer newreps newweight
     MenuQuit -> return ()
 
-addNewExercise :: (MonadIO m, Monad m) => FitStateT m ()
+addNewExercise :: (MonadException m) => FitStateT (InputT m) ()
 addNewExercise = do
   name <- prompt "Exercise Name:" ()
   prof <- getProficiency name
@@ -120,7 +120,7 @@ addNewExercise = do
     then return ()
     else createExercise name 
 
-removeOldExercise :: (MonadIO m, Monad m) => FitStateT m ()
+removeOldExercise :: (MonadException m) => FitStateT (InputT m) ()
 removeOldExercise = do
   exercises <- exerciseList
   mexer <- liftIO $ inputMenu def "Known Exercises" exercises
@@ -133,7 +133,7 @@ removeOldExercise = do
         else deleteExercise exer
     MenuQuit -> return ()
 
-addExerciseToWorkout :: (MonadIO m, Monad m) => FitStateT m ()  
+addExerciseToWorkout :: (MonadIO m) => FitStateT (InputT m) ()
 addExerciseToWorkout = do
   exercises <- exerciseList
   workout <- currentWorkoutList
@@ -145,7 +145,7 @@ addExerciseToWorkout = do
       addToWorkout exer
     MenuQuit -> return ()
   
-removeExerciseFromWorkout :: (MonadIO m, Monad m) => FitStateT m ()  
+removeExerciseFromWorkout :: (MonadIO m) => FitStateT (InputT m) ()
 removeExerciseFromWorkout = do
   workout <- currentWorkoutList
   mexer <- liftIO $ inputMenu def "Exercises Not In Workout" workout
