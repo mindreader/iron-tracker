@@ -72,16 +72,16 @@ fromList = undefined
 printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT (InputT m) ()
 printWorkout f = do
   exers <- exercisesWithInfo currentWorkoutList
-  when (null exers) $ io "You do not have any exercises set up in your workout.\n" ()
+  when (null exers) $ liftIO $ printf "You do not have any exercises set up in your workout.\n"
   mapM_ printExer $ fmap (fmap (fmap (fmap f))) exers
   where
 
-    printExer (Exercise label, (date,(Just (Proficiency 0 reps)))) =
-      io "{}: {} ({})\n"      ((left 20 ' ' label), left 4 ' ' $ show reps, show date)
-    printExer (Exercise label, (date,(Just (Proficiency weight reps)))) =
-      io "{}: {}@{} ({})\n"   ((left 20 ' ' label), left 4 ' ' $ show reps,weight, show date)
-    printExer (Exercise label, (_,Nothing)) =
-      io "{}: (none)\n"  (Only (left 20 ' '  label))
+    printExer (Exercise label, (date,(Just (Proficiency 0 reps)))) = undefined
+--      io "{}: {} ({})\n"      ((left 20 ' ' label), left 4 ' ' $ show reps, show date)
+    printExer (Exercise label, (date,(Just (Proficiency weight reps)))) = undefined
+--      io "{}: {}@{} ({})\n"   ((left 20 ' ' label), left 4 ' ' $ show reps,weight, show date)
+    printExer (Exercise label, (_,Nothing)) = undefined
+ --     io "{}: (none)\n"  (Only (left 20 ' '  label))
 
     exercisesWithInfo f = f >>= mapM addInfo
 
@@ -92,7 +92,7 @@ printWorkout f = do
 
 adjustWorkoutByReps :: (MonadException m) => FitStateT (InputT m) ()
 adjustWorkoutByReps = do
-  newreps <- prompt "Reps you want to do:" ()
+  newreps <- prompt "Reps you want to do:"
   printWorkout $ \(Proficiency weight reps) -> Proficiency (epley reps weight newreps) newreps
 
 
@@ -104,20 +104,20 @@ updateExercise = do
 
   mexer <- liftIO $ inputMenu def "Update Exercise" workout
   case mexer of
-    MenuError -> io "You don't have any exercises set up for your workout.\n" ()
+    MenuError -> liftIO $ printf "You don't have any exercises set up for your workout.\n"
     MenuInput exer -> do
       mprof <- getProficiency exer
       case mprof of
-        Nothing -> io "You have never done this exercise.\n" ()
-        Just (Proficiency weight reps)-> io "You can currently do {} reps at {} pounds.\n" (reps, weight)
-      newreps   <- prompt "New reps:" ()
-      newweight <- prompt "New weight (0 for bodyweight):" ()
+        Nothing -> liftIO $ printf "You have never done this exercise.\n"
+        Just (Proficiency weight reps)-> liftIO $ printf "You can currently do %d reps at %d pounds.\n" reps weight
+      newreps   <- prompt "New reps:"
+      newweight <- prompt "New weight (0 for bodyweight):"
       updateProficiency exer newreps newweight
     MenuQuit -> return ()
 
 addNewExercise :: (MonadException m) => FitStateT (InputT m) ()
 addNewExercise = do
-  name <- prompt "Exercise Name:" ()
+  name <- prompt "Exercise Name:"
   prof <- getProficiency name
   if isJust prof 
     then return ()
@@ -128,9 +128,9 @@ removeOldExercise = do
   exercises <- exerciseList
   mexer <- liftIO $ inputMenu def "Known Exercises" exercises
   case mexer of
-    MenuError -> io "You don't have any exercises in this database yet to delete.\n" ()
+    MenuError -> liftIO $ printf "You don't have any exercises in this database yet to delete.\n"
     MenuInput exer -> do
-      confirm <- prompt "Are you sure? (type yes):" ()
+      confirm <- prompt "Are you sure? (type yes):"
       if confirm /= ("yes" :: String)
         then return ()
         else deleteExercise exer
@@ -143,7 +143,7 @@ addExerciseToWorkout = do
   let exercisesnotinworkout = exercises \\ workout
   mexer <- liftIO $ inputMenu def "Exercises Not In Workout" exercisesnotinworkout
   case mexer of
-    MenuError -> io "You already have every known exercise in your workout.\n" ()
+    MenuError -> liftIO $ printf "You already have every known exercise in your workout.\n"
     MenuInput exer -> do
       addToWorkout exer
     MenuQuit -> return ()
@@ -153,10 +153,10 @@ removeExerciseFromWorkout = do
   workout <- currentWorkoutList
   mexer <- liftIO $ inputMenu def "Exercises Not In Workout" workout
   case mexer of
-    MenuError -> io "You already have every known exercise in your workout.\n" ()
+    MenuError -> liftIO $ printf "You already have every known exercise in your workout.\n"
     MenuInput exer -> do
       remFromWorkout exer
-      io "{} has been removed from your workout.\n" (Only exer)
+      liftIO $ printf "%s has been removed from your workout.\n" exer
     MenuQuit -> return ()
  
 

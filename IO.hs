@@ -1,23 +1,25 @@
 {-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances  #-}
 module IO (
 io, prompt, pressAnyKey,
-Format(..), Only(..), Shown(..), right, left, liftIO
+liftIO,
+module Text.Printf.Mauke
 )  where 
 
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import Data.Text.Format as Fmt
 import Safe
 
 import System.IO (hFlush, stdout)
 import System.Console.Haskeline
 
+import Text.Printf.Mauke
 
-io fmt = liftIO . Fmt.print fmt
+instance PrintfArg TL.Text where
+  embed t = undefined
 
-pressAnyKey = liftIO $ Fmt.print "Press any key to continue\n" () >> hFlush stdout >> getChar >> return ()
+pressAnyKey = liftIO $ printf "Press any key to continue\n" >> hFlush stdout >> getChar >> return ()
 
 class FromString a where
   fromString :: String -> Maybe a
@@ -31,10 +33,11 @@ instance FromString T.Text where
 instance FromString String where
   fromString = Just
 
+prompt :: PrintfType r => String -> r
 prompt fmt args = loop
   where
     loop = do
-      mx <- lift . getInputLine . TL.unpack $ Fmt.format fmt args
+      mx <- lift . getInputLine $ printf fmt args
       case mx of
         Nothing -> loop
         Just x -> do
