@@ -76,8 +76,6 @@ printWorkout f = do
     printExer (Exercise label, (Just (Proficiency weight reps))) = io "{}: {}@{}\n" ((left 20 ' ' label), reps,weight)
     printExer (Exercise label, Nothing) = io "{}: (none)\n" (Only (left 20 ' '  label))
 
-    sortFunc x y = compare (proficiency $ snd x) (proficiency $ snd y)
-
 
 adjustWorkoutByReps :: (Monad m, MonadIO m) => FitStateT m ()
 adjustWorkoutByReps = do
