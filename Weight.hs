@@ -75,6 +75,7 @@ printWorkout f = do
   mapM_ printExer $ fmap (fmap (fmap f)) profs
   where
 
+    printExer (Exercise label, (Just (Proficiency 0 reps))) = io "{}: {}\n" ((left 20 ' ' label), reps)
     printExer (Exercise label, (Just (Proficiency weight reps))) = io "{}: {}@{}\n" ((left 20 ' ' label), reps,weight)
     printExer (Exercise label, Nothing) = io "{}: (none)\n" (Only (left 20 ' '  label))
 
@@ -106,7 +107,7 @@ updateExercise = do
         Nothing -> io "You have never done this exercise.\n" ()
         Just (Proficiency weight reps)-> io "You can currently do {} reps at {} pounds.\n" (reps, weight)
       newreps   <- prompt "New reps:" ()
-      newweight <- prompt "New weight:" ()
+      newweight <- prompt "New weight (0 for bodyweight):" ()
       updateProficiency exer newreps newweight
     MenuQuit -> return ()
 
