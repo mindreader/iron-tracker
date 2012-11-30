@@ -26,7 +26,7 @@ epley :: Int -> Int -> Int -> Int
 epley r w r' = round $ ((fromIntegral w * fromIntegral r / 30) + fromIntegral w) * (30 / (fromIntegral r'+30))
 
 
-data MainMenuCommand = MMAdjustWorkoutReps | MMWorkoutStatus | MMUpdate | MMInclude | MMDisInclude | MMAdd | MMRemove deriving (Eq, Ord)
+data MainMenuCommand = MMWorkoutStatus | MMAdjustWorkoutReps | MMUpdate | MMInclude | MMDisInclude | MMAdd | MMRemove deriving (Eq, Ord)
 
 
 main :: IO ()
