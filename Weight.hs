@@ -20,14 +20,11 @@ import System.IO (stdout, stdin, hSetBuffering, BufferMode(..))
 --oconnor r w r' = round $ (fromIntegral w) * (1+(0.025*(fromIntegral r))) / (1+(0.025 * (fromIntegral r')))
 
 --This one is almost dead on for what I want.
---epley :: Int -> Int -> Int -> Int
---epley r w r' = round $ ((fromIntegral w * fromIntegral r / 30) + fromIntegral w) * (30 / (fromIntegral r'+30))
+epley :: Int -> Int -> Int -> Int
+epley r w r' = round $ ((fromIntegral w * fromIntegral r / 30) + fromIntegral w) * (30 / (fromIntegral r'+30))
 
 
---progression :: Int -> [Int]
---progression = reverse . take 6 . iterate (\x -> round $ fromIntegral x * 0.95)
-
-data MainMenuCommand = MMWorkoutStatus | MMUpdate | MMInclude | MMDisInclude | MMAdd | MMRemove deriving (Eq, Ord)
+data MainMenuCommand = MMAdjustWorkoutReps | MMWorkoutStatus | MMUpdate | MMInclude | MMDisInclude | MMAdd | MMRemove deriving (Eq, Ord)
 
 
 main :: IO ()
@@ -46,35 +43,48 @@ mainLoop = do
     MenuQuit -> return ()
     MenuInput command' -> do
       case command' of
-        MMWorkoutStatus -> printWorkout
-        MMInclude       -> addExerciseToWorkout
-        MMDisInclude    -> removeExerciseFromWorkout
-        MMUpdate        -> updateExercise
-        MMAdd           -> addNewExercise
-        MMRemove        -> removeOldExercise
+        MMAdjustWorkoutReps -> adjustWorkoutByReps
+        MMWorkoutStatus     -> printWorkout id
+        MMInclude           -> addExerciseToWorkout
+        MMDisInclude        -> removeExerciseFromWorkout
+        MMUpdate            -> updateExercise
+        MMAdd               -> addNewExercise
+        MMRemove            -> removeOldExercise
       continue
 
   where
     continue = pressAnyKey >> mainLoop
     menuCrud = [
-      (MMWorkoutStatus, "Information on current workout "::T.Text),
-      (MMUpdate,        "Update an exercise in current workout"),
-      (MMInclude,       "Add exercise to workout"),
-      (MMDisInclude,    "Remove exercise from workout"),
-      (MMAdd,           "Add New exercise"),
-      (MMRemove,        "Remove exercise")]
+      (MMAdjustWorkoutReps, "Workout with new rep count"),
+      (MMWorkoutStatus,     "Information on current workout "::T.Text),
+      (MMUpdate,            "Update an exercise in current workout"),
+      (MMInclude,           "Add exercise to workout"),
+      (MMDisInclude,        "Remove exercise from workout"),
+      (MMAdd,               "Add New exercise"),
+      (MMRemove,            "Remove exercise")]
 
 
 fromList = undefined
 
-printWorkout :: (Monad m, MonadIO m) => FitStateT m ()
-printWorkout = do
+printWorkout :: (Monad m, MonadIO m) => (Proficiency -> Proficiency) -> FitStateT m ()
+printWorkout f = do
   profs <- exercisesWithProfs currentWorkoutList
   when (null profs) $ io "You do not have any exercises set up in your workout.\n" ()
-  mapM_ printExer profs
+  mapM_ printExer $ fmap (fmap (fmap f)) profs
   where
+
     printExer (Exercise label, (Just (Proficiency weight reps))) = io "{}: {}@{}\n" ((left 20 ' ' label), reps,weight)
     printExer (Exercise label, Nothing) = io "{}: (none)\n" (Only (left 20 ' '  label))
+
+    sortFunc x y = compare (proficiency $ snd x) (proficiency $ snd y)
+
+
+adjustWorkoutByReps :: (Monad m, MonadIO m) => FitStateT m ()
+adjustWorkoutByReps = do
+  newreps <- prompt "Reps you want to do:" ()
+  printWorkout $ \(Proficiency weight reps) -> Proficiency (epley reps weight newreps) newreps
+
+--epley r w r' = round $ ((fromIntegral w * fromIntegral r / 30) + fromIntegral w) * (30 / (fromIntegral r'+30))
 
 exercisesWithProfs :: Monad m => FitStateT m [Exercise] -> FitStateT m [(Exercise, Maybe Proficiency)]
 exercisesWithProfs f = f >>= mapM addProf
