@@ -16,6 +16,7 @@ import FitState
 import System.IO (stdout, stdin, hSetBuffering, BufferMode(..))
 
 import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
+import Data.Time (Day)
 
 --This one estimates suprisingly low on low rep ranges.
 --oconnor :: Int -> Int -> Int -> Int
@@ -70,27 +71,30 @@ fromList = undefined
 
 printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT (InputT m) ()
 printWorkout f = do
-  profs <- exercisesWithProfs currentWorkoutList
-  when (null profs) $ io "You do not have any exercises set up in your workout.\n" ()
-  mapM_ printExer $ fmap (fmap (fmap f)) profs
+  exers <- exercisesWithInfo currentWorkoutList
+  when (null exers) $ io "You do not have any exercises set up in your workout.\n" ()
+  mapM_ printExer $ fmap (fmap (fmap (fmap f))) exers
   where
 
-    printExer (Exercise label, (Just (Proficiency 0 reps))) = io "{}: {}\n" ((left 20 ' ' label), reps)
-    printExer (Exercise label, (Just (Proficiency weight reps))) = io "{}: {}@{}\n" ((left 20 ' ' label), reps,weight)
-    printExer (Exercise label, Nothing) = io "{}: (none)\n" (Only (left 20 ' '  label))
+    printExer (Exercise label, (date,(Just (Proficiency 0 reps)))) =
+      io "{}: {} ({})\n"      ((left 20 ' ' label), left 4 ' ' $ show reps, show date)
+    printExer (Exercise label, (date,(Just (Proficiency weight reps)))) =
+      io "{}: {}@{} ({})\n"   ((left 20 ' ' label), left 4 ' ' $ show reps,weight, show date)
+    printExer (Exercise label, (_,Nothing)) =
+      io "{}: (none)\n"  (Only (left 20 ' '  label))
 
+    exercisesWithInfo f = f >>= mapM addInfo
+
+    addInfo exer@(Exercise label) = do
+      prof <- getProficiency label
+      lastworkout <- getLastWorkout label
+      return (exer, (lastworkout, prof))
 
 adjustWorkoutByReps :: (MonadException m) => FitStateT (InputT m) ()
 adjustWorkoutByReps = do
   newreps <- prompt "Reps you want to do:" ()
   printWorkout $ \(Proficiency weight reps) -> Proficiency (epley reps weight newreps) newreps
 
-exercisesWithProfs :: Monad m => FitStateT (InputT m) [Exercise] -> FitStateT (InputT m) [(Exercise, Maybe Proficiency)]
-exercisesWithProfs f = f >>= mapM addProf
-  where
-    addProf exer@(Exercise label) = do
-      prof <- getProficiency label
-      return (exer, prof)
 
 
  

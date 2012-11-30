@@ -138,3 +138,8 @@ getProficiency :: Monad m => T.Text -> FitStateT m (Maybe Proficiency)
 getProficiency key = do
   FitState st <- get
   return . join . fmap proficiency . M.lookup key $ st
+
+getLastWorkout :: Monad m => T.Text -> FitStateT m (Maybe Day)
+getLastWorkout key = do
+  FitState st <- get
+  return . join . fmap lastWorkout . M.lookup key $ st
