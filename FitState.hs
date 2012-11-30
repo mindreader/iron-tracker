@@ -22,6 +22,7 @@ import System.Directory (getHomeDirectory, removeDirectoryRecursive)
 import Control.Exception (catch)
 
 import Menu
+import Data.Time (Day)
 
 newtype FitStateT m a = FitStateT (StateT FitState m a)
   deriving (Monad, MonadIO, MonadState FitState, MonadTrans)
@@ -33,8 +34,16 @@ newtype FitState = FitState (M.Map T.Text FitInfo) deriving (Data, Typeable)
 data FitInfo = FitInfo {
   exercise :: Exercise,
   proficiency :: Maybe Proficiency,
+  lastWorkout :: Maybe Day,
   inWorkout :: Bool
 } deriving (Data, Typeable)
+
+data FitInfo_v0 = FitInfo_v0 {
+  v0_exercise :: Exercise,
+  v0_proficiency :: Maybe Proficiency,
+  v0_inWorkout :: Bool
+} deriving (Data, Typeable)
+
 
 newtype Exercise = Exercise T.Text deriving (Eq, Show, Data, Typeable)
 
@@ -54,10 +63,15 @@ myQuery :: Query FitState FitState
 myQuery = ask
 
 $(deriveSafeCopy 0 'base ''FitState)
-$(deriveSafeCopy 0 'base ''FitInfo)
+$(deriveSafeCopy 0 'base ''FitInfo_v0)
+$(deriveSafeCopy 1 'extension ''FitInfo)
 $(deriveSafeCopy 0 'base ''Exercise)
 $(deriveSafeCopy 0 'base ''Proficiency)
 $(makeAcidic ''FitState ['myUpdate, 'myQuery])
+
+instance Migrate FitInfo where
+  type MigrateFrom FitInfo = FitInfo_v0
+  migrate (FitInfo_v0 ex pro inw) = FitInfo ex pro Nothing inw
 
 
 runFitStateT :: MonadIO m => FitStateT m a -> m a
@@ -105,7 +119,7 @@ currentWorkoutList = do
   return $ map exercise . filter inWorkout . M.elems $ st
   
 createExercise :: Monad m => T.Text -> FitStateT m ()
-createExercise label = modify (\(FitState st) ->  FitState $ M.insert label (FitInfo (Exercise label) Nothing False) st)
+createExercise label = modify (\(FitState st) ->  FitState $ M.insert label (FitInfo (Exercise label) Nothing Nothing False) st)
 
 deleteExercise :: Monad m => T.Text -> FitStateT m ()
 deleteExercise label = modify (\(FitState st) -> FitState $ M.delete label st)
