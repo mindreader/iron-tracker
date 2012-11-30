@@ -84,8 +84,6 @@ adjustWorkoutByReps = do
   newreps <- prompt "Reps you want to do:" ()
   printWorkout $ \(Proficiency weight reps) -> Proficiency (epley reps weight newreps) newreps
 
---epley r w r' = round $ ((fromIntegral w * fromIntegral r / 30) + fromIntegral w) * (30 / (fromIntegral r'+30))
-
 exercisesWithProfs :: Monad m => FitStateT (InputT m) [Exercise] -> FitStateT (InputT m) [(Exercise, Maybe Proficiency)]
 exercisesWithProfs f = f >>= mapM addProf
   where
