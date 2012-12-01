@@ -1,12 +1,11 @@
 {-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances  #-}
 module IO (
-io, prompt, pressAnyKey,
+prompt, pressAnyKey,
 liftIO,
 module Text.Printf.Mauke
 )  where 
 
 import Control.Monad.IO.Class
-import Control.Monad.Trans (lift)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Safe
@@ -17,7 +16,11 @@ import System.Console.Haskeline
 import Text.Printf.Mauke
 
 instance PrintfArg TL.Text where
-  embed t = undefined
+  embed = AStr . TL.unpack
+
+instance PrintfArg T.Text where
+  embed = AStr . T.unpack
+
 
 pressAnyKey = liftIO $ printf "Press any key to continue\n" >> hFlush stdout >> getChar >> return ()
 
@@ -33,11 +36,11 @@ instance FromString T.Text where
 instance FromString String where
   fromString = Just
 
-prompt :: PrintfType r => String -> r
-prompt fmt args = loop
+prompt :: (MonadException m, FromString a) => String -> InputT m a
+prompt str = loop
   where
     loop = do
-      mx <- lift . getInputLine $ printf fmt args
+      mx <- getInputLine $ str
       case mx of
         Nothing -> loop
         Just x -> do

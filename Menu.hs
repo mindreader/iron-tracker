@@ -6,7 +6,6 @@ module Menu where
 import Prelude hiding (catch)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Data.Text.Format as Fmt
 
 import Data.Maybe
 import qualified Data.Map as M
@@ -18,7 +17,7 @@ import Control.Monad (when)
 import Data.Char (isAlphaNum)
 import Data.List (findIndex)
 
-
+import IO
 
 class Menuable a where
   type MenuKey a
@@ -63,9 +62,9 @@ inputMenu opts title menuable = loop
       [] -> return MenuError
       items' -> do
         display title items'
-        when (quitOption opts) $ Fmt.print "q. Quit\n" ()
+        when (quitOption opts) $ printf "q. Quit\n"
         key <- getChar
-        Fmt.print "\n" ()
+        printf "\n"
         if ((quitOption opts && (key == 'q')) || (not $ isJust $ findIndex (==key) inputChars))
           then return MenuQuit
           else maybe loop (return . MenuInput . menuKey) $ items' `atMay` (maybe 0 id (findIndex (==key) inputChars))
@@ -74,8 +73,8 @@ inputMenu opts title menuable = loop
 
     display :: T.Text -> [MenuItem a] -> IO ()
     display title items = do
-      Fmt.print "\n{}\n" (Only title)
+      printf "\n%s\n" title
       mapM_ printLine (zip inputChars items)
 
-    printLine (i, (MenuItem _ label)) = Fmt.print "{}. {}\n" (i,label)
+    printLine (i, (MenuItem _ label)) = printf "%c. %s\n" i label
     inputChars = filter (/= 'q') $ filter isAlphaNum $ ['1'..'9'] ++ ['0'] ++ ['a'..'z'] ++ ['A'..'Z']
