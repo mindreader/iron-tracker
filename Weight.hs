@@ -67,8 +67,6 @@ mainLoop = do
       (MMRemove,            "Remove exercise")]
 
 
-fromList = undefined
-
 printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT (InputT m) ()
 printWorkout f = do
   exers <- exercisesWithInfo currentWorkoutList
