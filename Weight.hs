@@ -60,7 +60,7 @@ printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT (InputT
 printWorkout f = do
   exers <- exercisesWithInfo currentWorkoutList
   when (null exers) $ liftIO $ printf "You do not have any exercises set up in your workout.\n"
-  mapM_ (liftIO . printExer) $ exers
+  mapM_ (liftIO . printExer) $ fmap (fmap (fmap (fmap f))) exers
 
 
 exercisesWithInfo :: Monad m => FitStateT m [Exercise] -> FitStateT m [(Exercise, (Maybe Day, Maybe Proficiency))]
