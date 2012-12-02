@@ -22,10 +22,10 @@ import System.Directory (getHomeDirectory, removeDirectoryRecursive)
 import Control.Exception (catch)
 
 import Menu
-import Data.Time (Day)
+import Data.Time (localDay,zonedTimeToLocalTime,getZonedTime,Day)
 
 newtype FitStateT m a = FitStateT (StateT FitState m a)
-  deriving (Monad, MonadIO, MonadState FitState, MonadTrans)
+  deriving (Monad, MonadIO, MonadState FitState, MonadTrans, Functor)
 
  
 newtype FitState = FitState (M.Map T.Text FitInfo) deriving (Data, Typeable)
@@ -54,7 +54,10 @@ instance Menuable [Exercise] where
 
 type Weight = Int
 type Reps   = Int
-data Proficiency = Proficiency Weight Reps deriving (Show, Data, Typeable)
+data Proficiency = Proficiency Weight Reps deriving (Eq, Show, Data, Typeable)
+
+instance Ord Proficiency where
+  compare (Proficiency w1 _) (Proficiency w2 _) = compare w1 w2
 
 myUpdate :: FitState  -> Update FitState ()
 myUpdate arg = put arg
@@ -143,3 +146,9 @@ getLastWorkout :: Monad m => T.Text -> FitStateT m (Maybe Day)
 getLastWorkout key = do
   FitState st <- get
   return . join . fmap lastWorkout . M.lookup key $ st
+
+setLastWorkout :: MonadIO m => T.Text -> FitStateT m ()
+setLastWorkout key = do
+  today <- liftIO $ fmap (localDay . zonedTimeToLocalTime) getZonedTime
+  modify (\(FitState st) -> FitState $
+    M.update (\fitInfo -> Just $ fitInfo { lastWorkout = Just today }) key st)

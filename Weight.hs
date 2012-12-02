@@ -10,6 +10,7 @@ import Menu
 import Data.Maybe (isJust)
 import Data.List
 import Data.Default
+import Data.Function (on)
 
 import IO
 import FitState
@@ -19,16 +20,7 @@ import System.IO (stdout, stdin, hSetBuffering, BufferMode(..))
 import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
 import Data.Time (Day)
 
---This one estimates suprisingly low on low rep ranges.
---oconnor :: Int -> Int -> Int -> Int
---oconnor r w r' = round $ (fromIntegral w) * (1+(0.025*(fromIntegral r))) / (1+(0.025 * (fromIntegral r')))
-
---This one is almost dead on for what I want.
-epley :: Int -> Int -> Int -> Int
-epley r w r' = round $ ((fromIntegral w * fromIntegral r / 30) + fromIntegral w) * (30 / (fromIntegral r'+30))
-
-
-data MainMenuCommand = MMWorkoutStatus | MMAdjustWorkoutReps | MMUpdate | MMInclude | MMDisInclude | MMAdd | MMRemove deriving (Eq, Ord)
+data MainMenuCommand = MMWorkoutMode | MMWorkoutStatus | MMAdjustWorkoutReps | MMUpdate | MMInclude | MMDisInclude | MMAdd | MMRemove deriving (Eq, Ord)
 
 
 main :: IO ()
@@ -47,8 +39,9 @@ mainLoop = do
     MenuQuit -> return ()
     MenuInput command' -> do
       case command' of
-        MMAdjustWorkoutReps -> adjustWorkoutByReps
+        MMWorkoutMode       -> workoutMode
         MMWorkoutStatus     -> printWorkout id
+        MMAdjustWorkoutReps -> adjustWorkoutByReps
         MMInclude           -> addExerciseToWorkout
         MMDisInclude        -> removeExerciseFromWorkout
         MMUpdate            -> updateExercise
@@ -59,8 +52,9 @@ mainLoop = do
   where
     continue = pressAnyKey >> mainLoop
     menuCrud = [
-      (MMAdjustWorkoutReps, "Workout with new rep count"),
-      (MMWorkoutStatus,     "Information on current workout "::T.Text),
+      (MMWorkoutMode,       "Perform a Workout"),
+      (MMAdjustWorkoutReps, "Print workout with new rep count"),
+      (MMWorkoutStatus,     "Current workout proficiencies"::T.Text),
       (MMUpdate,            "Update an exercise in current workout"),
       (MMInclude,           "Add exercise to workout"),
       (MMDisInclude,        "Remove exercise from workout"),
@@ -72,34 +66,74 @@ printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT (InputT
 printWorkout f = do
   exers <- exercisesWithInfo currentWorkoutList
   when (null exers) $ liftIO $ printf "You do not have any exercises set up in your workout.\n"
-  mapM_ (liftIO . printExer) $ fmap (fmap (fmap (fmap f))) exers
+  mapM_ (liftIO . printExer) $ exers
+
+
+exercisesWithInfo :: Monad m => FitStateT m [Exercise] -> FitStateT m [(Exercise, (Maybe Day, Maybe Proficiency))]
+exercisesWithInfo f = f >>= mapM addInfo
   where
-
-    printExer (Exercise label, (date,prof)) =
-      printf "%-26s %-8s %s\n" (labelJustify label) (weightRepJustify prof) (dateJustify date)
-      where
-        labelJustify :: PrintfArg a => a-> String
-        labelJustify label = printf "%s:" label
-
-        weightRepJustify :: Maybe Proficiency -> String
-        weightRepJustify  Nothing                         = "(none)"
-        weightRepJustify (Just (Proficiency 0 reps))      = printf "%d" reps
-        weightRepJustify (Just (Proficiency weight reps)) = printf "%d@%d" reps weight
-
-        dateJustify Nothing     = ""
-        dateJustify (Just date) = show date
-
-    exercisesWithInfo f = f >>= mapM addInfo
 
     addInfo exer@(Exercise label) = do
       prof <- getProficiency label
       lastworkout <- getLastWorkout label
       return (exer, (lastworkout, prof))
 
+printExer (Exercise label, (date,prof)) =
+  printf "%-26s %-8s %s\n" (exerLabel label) (printMaybeProficiency prof) (printMaybeDate date)
+  where
+    exerLabel :: PrintfArg a => a-> String
+    exerLabel label = printf "%s:" label
+
+
+printMaybeProficiency :: Maybe Proficiency -> String
+printMaybeProficiency  Nothing                         = "(none)"
+printMaybeProficiency (Just (Proficiency 0 reps))      = printf "%d" reps
+printMaybeProficiency (Just (Proficiency weight reps)) = printf "%d@%d" reps weight
+
+printMaybeDate Nothing     = ""
+printMaybeDate (Just date) = show date
+
+
+
+
+workoutMode :: MonadException m => FitStateT (InputT m) ()
+workoutMode = do
+  newreps <- lift $ prompt "Reps you are aiming for:"
+  let
+    workoutMode' exers = do
+      mexer <- liftIO $ inputMenu (def { quitOption = True }) "Select Next Exercise" exers
+      case mexer of
+        MenuError -> liftIO $ printf "You are finished with your workout.\n"
+        MenuQuit -> return ()
+        MenuInput exer -> do
+          mprof <- getProficiency exer
+          let newmprof = fmap (epleyize newreps) mprof
+          mdate <- getLastWorkout exer
+          liftIO $ printf "For %s you were last able to do %s on %s.\n" exer (printMaybeProficiency mprof) (printMaybeDate mdate)
+          liftIO $ printf "You must do %s.\n" (printMaybeProficiency newmprof)
+          setLastWorkout exer
+          pressAnyKey
+          workoutMode' (filter (\(Exercise label) -> label /= exer) exers)
+
+--  profs <- fmap (sortBy (compare `on` snd . snd) . fmap (fmap (fmap (fmap $ epleyize newreps)))) $ exercisesWithInfo currentWorkoutList
+  currentWorkoutList >>= workoutMode'
+
+
 adjustWorkoutByReps :: (MonadException m) => FitStateT (InputT m) ()
 adjustWorkoutByReps = do
   newreps <- lift $ prompt "Reps you want to do:"
-  printWorkout $ \(Proficiency weight reps) -> Proficiency (epley reps weight newreps) newreps
+  printWorkout $ epleyize newreps
+
+epleyize :: Int -> Proficiency -> Proficiency
+epleyize newreps (Proficiency weight reps) = Proficiency (epley reps weight newreps) newreps
+  where
+    --This one estimates suprisingly low on low rep ranges.
+    --oconnor :: Int -> Int -> Int -> Int
+    --oconnor r w r' = round $ (fromIntegral w) * (1+(0.025*(fromIntegral r))) / (1+(0.025 * (fromIntegral r')))
+
+    --This one is almost dead on for what I want.
+    epley :: Int -> Int -> Int -> Int
+    epley r w r' = round $ ((fromIntegral w * fromIntegral r / 30) + fromIntegral w) * (30 / (fromIntegral r'+30))
 
 
 
