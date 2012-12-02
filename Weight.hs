@@ -7,15 +7,11 @@ import Control.Monad.Trans (lift)
 import Control.Monad (when)
 import qualified Data.Text as T
 import Menu
-import Data.Maybe (isJust)
-import Data.List
-import Data.Default
-import Data.Function (on)
+import Data.List ((\\))
+import Data.Default (def)
 
 import IO
 import FitState
-
-import System.IO (stdout, stdin, hSetBuffering, BufferMode(..))
 
 import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
 import Data.Time (Day)
@@ -25,8 +21,6 @@ data MainMenuCommand = MMWorkoutMode | MMWorkoutStatus | MMAdjustWorkoutReps | M
 
 main :: IO ()
 main = do
-  hSetBuffering stdin NoBuffering
-  hSetBuffering stdout LineBuffering
   runInputT defaultSettings (runFitStateT mainLoop)
 
 
@@ -159,9 +153,9 @@ addNewExercise :: (MonadException m) => FitStateT (InputT m) ()
 addNewExercise = do
   name <- lift $ prompt "Exercise Name:"
   prof <- getProficiency name
-  if isJust prof 
-    then return ()
-    else createExercise name 
+  case prof of
+    Nothing -> return ()
+    Just _ -> createExercise name
 
 removeOldExercise :: (MonadException m) => FitStateT (InputT m) ()
 removeOldExercise = do
