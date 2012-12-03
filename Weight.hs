@@ -16,11 +16,16 @@ import FitState
 import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
 import Data.Time (Day)
 
+import System.IO (stdout, stdin, hSetBuffering, BufferMode(..))
+
+
 data MainMenuCommand = MMWorkoutMode | MMWorkoutStatus | MMAdjustWorkoutReps | MMUpdate | MMInclude | MMDisInclude | MMAdd | MMRemove deriving (Eq, Ord)
 
 
 main :: IO ()
 main = do
+  hSetBuffering stdin NoBuffering
+  hSetBuffering stdout LineBuffering
   runInputT defaultSettings (runFitStateT mainLoop)
 
 
