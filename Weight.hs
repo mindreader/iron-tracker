@@ -110,6 +110,9 @@ workoutMode = do
           mdate <- getLastWorkout exer
           liftIO $ printf "For %s you were last able to do %s on %s.\n" exer (printMaybeProficiency mprof) (printMaybeDate mdate)
           liftIO $ printf "You must do %s.\n" (printMaybeProficiency newmprof)
+          change <- lift $ prompt "Any change? (y/n)"
+          when (change == ("y") $ do
+            updateExerciseProcedure exer
           setLastWorkout exer
           pressAnyKey
           workoutMode' (filter (\(Exercise label) -> label /= exer) exers)
@@ -144,7 +147,12 @@ updateExercise = do
   mexer <- liftIO $ inputMenu def "Update Exercise" workout
   case mexer of
     MenuError -> liftIO $ printf "You don't have any exercises set up for your workout.\n"
-    MenuInput exer -> do
+    MenuInput exer -> updateExerciseProcedure exer
+    MenuQuit -> return ()
+
+
+updateExerciseProcedure :: (MonadException m) => T.Text -> FitStateT (InputT m) ()
+updateExerciseProcedure exer = do
       mprof <- getProficiency exer
       case mprof of
         Nothing -> liftIO $ printf "You have never done this exercise.\n"
@@ -152,7 +160,6 @@ updateExercise = do
       newreps   <- lift $ prompt "New reps:"
       newweight <- lift $ prompt "New weight (0 for bodyweight):"
       updateProficiency exer newreps newweight
-    MenuQuit -> return ()
 
 addNewExercise :: (MonadException m) => FitStateT (InputT m) ()
 addNewExercise = do
