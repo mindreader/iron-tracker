@@ -38,12 +38,6 @@ data FitInfo = FitInfo {
   inWorkout :: Bool
 } deriving (Data, Typeable)
 
-data FitInfo_v0 = FitInfo_v0 {
-  v0_exercise :: Exercise,
-  v0_proficiency :: Maybe Proficiency,
-  v0_inWorkout :: Bool
-} deriving (Data, Typeable)
-
 
 newtype Exercise = Exercise T.Text deriving (Eq, Show, Data, Typeable)
 
@@ -66,15 +60,10 @@ myQuery :: Query FitState FitState
 myQuery = ask
 
 $(deriveSafeCopy 0 'base ''FitState)
-$(deriveSafeCopy 0 'base ''FitInfo_v0)
-$(deriveSafeCopy 1 'extension ''FitInfo)
+$(deriveSafeCopy 1 'base ''FitInfo)
 $(deriveSafeCopy 0 'base ''Exercise)
 $(deriveSafeCopy 0 'base ''Proficiency)
 $(makeAcidic ''FitState ['myUpdate, 'myQuery])
-
-instance Migrate FitInfo where
-  type MigrateFrom FitInfo = FitInfo_v0
-  migrate (FitInfo_v0 ex pro inw) = FitInfo ex pro Nothing inw
 
 
 runFitStateT :: MonadIO m => FitStateT m a -> m a
