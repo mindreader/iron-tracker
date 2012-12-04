@@ -5,7 +5,7 @@ liftIO,
 module Text.Printf.Mauke
 )  where 
 
-import Control.Monad.IO.Class
+import Control.Monad.Trans
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Safe
