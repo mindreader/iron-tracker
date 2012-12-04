@@ -111,7 +111,7 @@ workoutMode = do
           liftIO $ printf "For %s you were last able to do %s on %s.\n" exer (printMaybeProficiency mprof) (printMaybeDate mdate)
           liftIO $ printf "You must do %s.\n" (printMaybeProficiency newmprof)
           change <- lift $ prompt "Any change? (y/n)"
-          when (change == ("y") $ do
+          when (change == ("y"::String)) $ do
             updateExerciseProcedure exer
           setLastWorkout exer
           pressAnyKey
