@@ -69,3 +69,6 @@ printTable tdata = do
 
 pad :: Int -> String -> String
 pad i str = str ++ replicate (i - length str) ' '
+
+searchPrompt :: (MonadException m, FromString a) => [a] -> InputT m [a]
+searchPrompt = undefined

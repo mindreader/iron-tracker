@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell, TypeFamilies #-}
-module Food where
+module FoodState where
 
 
 import Prelude hiding (catch)
@@ -11,8 +11,6 @@ import Data.SafeCopy
 
 import Data.Data
 import Data.Typeable
-
-
 
 import qualified Data.Text as T
 import Control.Monad.State
@@ -42,6 +40,7 @@ data Food = Food {
   } | Recipe {
     ingredients :: [Food]
   } deriving (Data, Typeable)
+
 
 
 myUpdate :: FoodState -> Update FoodState ()

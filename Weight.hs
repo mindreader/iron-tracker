@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main where
+module Weight(runWeightRoutine) where
 
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
@@ -19,52 +19,46 @@ import FitState
 import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
 import Data.Time (Day)
 
-import System.IO (stdout, stdin, hSetBuffering, BufferMode(..))
 
+data WeightMenuCommand = MWWorkoutMode | MWWorkoutStatus | MWAdjustWorkoutReps | MWUpdate | MWInclude | MWDisInclude | MWAdd | MWRemove deriving (Eq, Ord)
 
-data MainMenuCommand = MMWorkoutMode | MMWorkoutStatus | MMAdjustWorkoutReps | MMUpdate | MMInclude | MMDisInclude | MMAdd | MMRemove deriving (Eq, Ord)
-
-
-main :: IO ()
-main = do
-  hSetBuffering stdin NoBuffering
-  hSetBuffering stdout LineBuffering
-  runInputT defaultSettings (runFitStateT mainLoop)
+runWeightRoutine :: MonadException m => m ()
+runWeightRoutine = runInputT defaultSettings (runFitStateT mainLoop)
 
 
 mainLoop :: (MonadException m) => FitStateT (InputT m) ()
 mainLoop = do
-  command <- liftIO $ inputMenu (def { quitOption = True }) "Main Menu" menuCrud
+  command <- liftIO $ inputMenu (def { quitOption = True }) "Weight Menu" menuCrud
 
   case command of
     MenuError -> mainLoop
     MenuQuit -> return ()
     MenuInput command' -> do
       case command' of
-        MMWorkoutMode       -> workoutMode
-        MMWorkoutStatus     -> printWorkout id
-        MMAdjustWorkoutReps -> adjustWorkoutByReps
-        MMInclude           -> addExerciseToWorkout
-        MMDisInclude        -> removeExerciseFromWorkout
-        MMUpdate            -> updateExercise
-        MMAdd               -> addNewExercise
-        MMRemove            -> removeOldExercise
+        MWWorkoutMode       -> workoutMode
+        MWWorkoutStatus     -> printWorkout id
+        MWAdjustWorkoutReps -> adjustWorkoutByReps
+        MWInclude           -> addExerciseToWorkout
+        MWDisInclude        -> removeExerciseFromWorkout
+        MWUpdate            -> updateExercise
+        MWAdd               -> addNewExercise
+        MWRemove            -> removeOldExercise
       continue
 
   where
     continue = pressAnyKey >> mainLoop
     menuCrud = [
-      (MMWorkoutMode,       "Perform a Workout"),
-      (MMAdjustWorkoutReps, "Print workout with new rep count"),
-      (MMWorkoutStatus,     "Current workout proficiencies"::T.Text),
-      (MMUpdate,            "Update an exercise in current workout"),
-      (MMInclude,           "Add exercise to workout"),
-      (MMDisInclude,        "Remove exercise from workout"),
-      (MMAdd,               "Add New exercise"),
-      (MMRemove,            "Remove exercise")]
+      (MWWorkoutMode,       "Perform a Workout"),
+      (MWAdjustWorkoutReps, "Print workout with new rep count"),
+      (MWWorkoutStatus,     "Current workout proficiencies"::T.Text),
+      (MWUpdate,            "Update an exercise in current workout"),
+      (MWInclude,           "Add exercise to workout"),
+      (MWDisInclude,        "Remove exercise from workout"),
+      (MWAdd,               "Add New exercise"),
+      (MWRemove,            "Remove exercise")]
 
 
-printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT (InputT m) ()
+printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT m ()
 printWorkout f = do
   exers <- exercisesWithInfo currentWorkoutList
   when (null exers) $ liftIO $ printf "You do not have any exercises set up in your workout.\n"
@@ -174,7 +168,7 @@ removeOldExercise = do
         else deleteExercise exer
     MenuQuit -> return ()
 
-addExerciseToWorkout :: (MonadIO m) => FitStateT (InputT m) ()
+addExerciseToWorkout :: (MonadIO m) => FitStateT m ()
 addExerciseToWorkout = do
   exercises <- exerciseList
   workout <- currentWorkoutList
@@ -186,7 +180,7 @@ addExerciseToWorkout = do
       addToWorkout exer
     MenuQuit -> return ()
   
-removeExerciseFromWorkout :: (MonadIO m) => FitStateT (InputT m) ()
+removeExerciseFromWorkout :: (MonadIO m) => FitStateT m ()
 removeExerciseFromWorkout = do
   workout <- currentWorkoutList
   mexer <- liftIO $ inputMenu def "Exercises Not In Workout" workout
