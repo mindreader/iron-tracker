@@ -10,6 +10,8 @@ import Menu
 import Data.List ((\\))
 import Data.Default (def)
 
+import PlateCalc
+
 import IO
 import FitState
 
@@ -87,7 +89,7 @@ printExer (Exercise label, (date,prof)) =
 printMaybeProficiency :: Maybe Proficiency -> String
 printMaybeProficiency  Nothing                         = "(none)"
 printMaybeProficiency (Just (Proficiency 0 reps))      = printf "%d" reps
-printMaybeProficiency (Just (Proficiency weight reps)) = printf "%d@%d" reps weight
+printMaybeProficiency (Just (Proficiency weight reps)) = printf "%d@%d (%s)" reps weight (displayPlateCalc weight)
 
 printMaybeDate Nothing     = ""
 printMaybeDate (Just date) = show date
