@@ -80,7 +80,7 @@ exercisesWithInfo f = f >>= mapM addInfo
       return (exer, (lastworkout, prof))
 
 printExer (Exercise label, (date,prof)) =
-  printf "%-26s %-8s %s\n" (exerLabel label) (printMaybeProficiency prof) (printMaybeDate date)
+  printf "%-25s %-40s %s\n" (exerLabel label) (printMaybeProficiency prof) (printMaybeDate date)
   where
     exerLabel :: PrintfArg a => a-> String
     exerLabel label = printf "%s:" label
@@ -88,8 +88,8 @@ printExer (Exercise label, (date,prof)) =
 
 printMaybeProficiency :: Maybe Proficiency -> String
 printMaybeProficiency  Nothing                         = "(none)"
-printMaybeProficiency (Just (Proficiency 0 reps))      = printf "%d" reps
-printMaybeProficiency (Just (Proficiency weight reps)) = printf "%d@%d (%s)" reps weight (displayPlateCalc weight)
+printMaybeProficiency (Just (Proficiency 0 reps))      = printf "%15d" reps
+printMaybeProficiency (Just (Proficiency weight reps)) = printf "%15s (%s)" (printf "%d@%d" reps weight :: String) (displayPlateCalc weight)
 
 printMaybeDate Nothing     = ""
 printMaybeDate (Just date) = show date

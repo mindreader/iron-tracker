@@ -10,12 +10,14 @@ data Plate = P45 Int | P25 Int | P10 Int | P5 Int | P2p5 Int | TooLight deriving
 displayPlateCalc = displayPlates . plateCalc
 
 displayPlates :: Plates -> String
+displayPlates (Plates []) = "just the bar"
 displayPlates (Plates ps) = dPlates ps
   where
     dPlates :: [Plate] -> String
     dPlates = concat . intersperse "," . map dPlate
 
     dPlate :: Plate -> String
+    dPlate (TooLight) = "less than a bar"
     dPlate (P45  n) = "45x"  ++ show n
     dPlate (P25  n) = "25x"  ++ show n
     dPlate (P10  n) = "10x"  ++ show n
