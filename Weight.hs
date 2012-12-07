@@ -90,7 +90,6 @@ exercisesWithInfo f = f >>= mapM addInfo
       lastworkout <- getLastWorkout label
       return (exer, (lastworkout, prof))
 
-
 formatProficiency :: Proficiency -> String
 formatProficiency (Proficiency 0 reps)      = printf "%d" reps
 formatProficiency (Proficiency weight reps) = printf "%s (%s)" (pad 6 $ printf "%d@%d" reps weight :: String) (displayPlateCalc weight)
