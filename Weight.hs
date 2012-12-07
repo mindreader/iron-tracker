@@ -166,10 +166,7 @@ updateExerciseProcedure exer = do
 addNewExercise :: (MonadException m) => FitStateT (InputT m) ()
 addNewExercise = do
   name <- lift $ prompt "Exercise Name:"
-  prof <- getProficiency name
-  case prof of
-    Nothing -> return ()
-    Just _ -> createExercise name
+  createExercise name
 
 removeOldExercise :: (MonadException m) => FitStateT (InputT m) ()
 removeOldExercise = do
