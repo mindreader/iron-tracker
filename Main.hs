@@ -26,8 +26,8 @@ main = do
 mainLoop :: IO ()
 mainLoop = do
   command <- inputMenu (def { quitOption = True }) "Main Menu" $ [
-      (MMWeights,       "Throw some weight around"::T.Text),
-      (MMFood,          "Toss back some food")]
+      (MMWeights,       "Weight Training"::T.Text),
+      (MMFood,          "Food Tracking")]
 
   case command of
     MenuError -> mainLoop
