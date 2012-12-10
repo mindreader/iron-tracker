@@ -1,4 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
+
+module Main where
+
 import Menu
 import Weight (runWeightRoutine)
 import Food (runFoodRoutine)
@@ -33,5 +36,3 @@ mainLoop = do
       case command' of
         MMWeights -> runWeightRoutine
         MMFood    -> runFoodRoutine
-
-runFoodRoutine = undefined
