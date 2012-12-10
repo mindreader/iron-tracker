@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell, TypeFamilies #-}
+{-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell, TypeFamilies, NamedFieldPuns #-}
 module FoodState where
 
 
@@ -36,18 +36,32 @@ newtype FoodStateT m a = FoodStateT (StateT FoodState m a)
   deriving (Monad, MonadIO, MonadState FoodState, MonadTrans, Functor)
 
 data Food = Food {
-    name :: T.Text,
-    protein      :: Protein,
-    fat          :: Fat,
-    carbs        :: Carbs,
+    name         :: T.Text,
+    proteinPerS  :: Protein,
+    fatPerS      :: Fat,
+    carbsPerS    :: Carbs,
     weightBased  :: Maybe Weight,
-    amountBased   :: Bool
+    amountBased  :: Bool
   } | Recipe {
-    ingredients :: [Food]
+    name         :: T.Text,
+    ingredients  :: [Food]
   } deriving (Data, Typeable, Show, Eq)
 
 calories :: Food -> Calories
 calories (Food _ p f c _ _) = 4*p + 4*c + 9*f
+calories (Recipe _ is)      = sum $ map calories is
+
+protein  :: Food -> Protein
+protein (Food { proteinPerS = protein }) = protein
+protein (Recipe _ is)      = sum $ map protein is
+
+fat :: Food -> Protein
+fat (Food { fatPerS = fat }) = fat
+fat (Recipe _ is) = sum $ map fat is
+
+carbs :: Food -> Protein
+carbs (Food { carbsPerS = carbs }) = carbs
+carbs (Recipe _ is) = sum $ map carbs is
 
 instance Ord Food where
   compare food1 food2 = compare (name food1) (name food2)
@@ -72,7 +86,7 @@ runFoodStateT (FoodStateT f) = do
 
 -- TODO move into library
 prepareStateDir = do
-  statedir <- fmap (++ "/.fitstate") $ getHomeDirectory
+  statedir <- fmap (++ "/.foodState") $ getHomeDirectory
   return $ statedir
 
 

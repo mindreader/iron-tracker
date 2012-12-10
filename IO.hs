@@ -42,6 +42,7 @@ instance FromString Float where
   fromString = Just . read
 
 
+
 data YNOpt = DefYes | DefNo
 yesnoPrompt :: (MonadException m) => String -> YNOpt -> InputT m Bool
 yesnoPrompt str DefYes = prompt str >>= (\answer -> return $ answer /= ("no" :: String))
@@ -82,8 +83,8 @@ pad i str = str ++ replicate (i - length str) ' '
 
 searchPrompt :: MonadException m => [T.Text] -> m [T.Text]
 searchPrompt textPossibles = do
-  let
-    completefunc = completeWord Nothing "" $ return . testWords
+  let -- The \t prevents it from defaulting to space, which causes it to fail on any strings with spaces in them.
+      completefunc = completeWord Nothing "\t" $ return . testWords
   searchTerm <- runInputT (setComplete completefunc defaultSettings) $ getInputLine "Search:"
   return $ take 25 $ case searchTerm of
     Nothing -> textPossibles

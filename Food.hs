@@ -64,13 +64,40 @@ deleteFood = do
     MenuInput food -> remFood food
     otherwise -> return ()
 
-createRecipe :: MonadIO m => FoodStateT m ()
-createRecipe = undefined
+createRecipe :: MonadException m => FoodStateT (InputT m) ()
+createRecipe = do
+    name <- lift $ prompt "Name of recipe:"
+    createRecipe' >>= addFood . Recipe name
+  where
+    createRecipe' = do
+      mfood <- addIngredient
+      case mfood of
+        Nothing -> return []
+        Just food -> do
+          done <- lift $ yesnoPrompt "Done? (no):" DefNo
+          if (done)
+            then return $ food:[]
+            else do
+              rest <- createRecipe'
+              return $ food:rest
+
+    addIngredient = do
+      liftIO $ printf "Add an ingredient\n"
+      foods <- foodList
+      foodNamesFiltered <- lift . searchPrompt $ map name foods  -- TODO make a SearchPromptable class similar to Menuable
+      let foodsFiltered = filter (\food -> name food `elem` foodNamesFiltered) foods
+      mfood <- liftIO $ inputMenu (def { quitOption = True }) "Pick A Food" $ take 25 $ (map (\food -> (food, name food))) $ foodsFiltered
+      return $ case mfood of
+        MenuInput food -> Just food
+        otherwise -> Nothing
+ 
+  
 
 foodSearch :: MonadException m => FoodStateT (InputT m) ()
 foodSearch = do
   foods <- foodList
   foodNamesFiltered <- lift . searchPrompt $ map name foods  -- TODO make a SearchPromptable class similar to Menuable
+  liftIO $ print foodNamesFiltered
   let foodsFiltered = filter (\food -> name food `elem` foodNamesFiltered) foods
 
   mfood <- liftIO $ inputMenu (def { quitOption = True }) "Pick A Food" $ take 25 $ map (\food -> (food, name food)) foodsFiltered
@@ -85,6 +112,7 @@ foodSearch = do
           (fromIntegral (protein food)  * multiplier)
           (fromIntegral (fat food)      * multiplier)
           (fromIntegral (carbs food)    * multiplier)
+    MenuError -> liftIO $ print "menuError"
     otherwise -> return ()
 
   where
