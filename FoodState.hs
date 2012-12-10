@@ -19,10 +19,14 @@ import Control.Monad.Reader
 import System.Directory (getHomeDirectory, removeDirectoryRecursive)
 
 import Control.Exception (catch)
+import Text.Regex.Posix ((=~))
 
 
-type Protein = Int -- in grams
+type Protein  = Int -- in grams
+type Fat      = Int -- in grams
+type Carbs    = Int -- in grams
 type Calories = Int -- in kcals
+type Weight   = Int -- in grams
 
 data FoodState = FoodState {
   foods :: [Food]
@@ -33,14 +37,20 @@ newtype FoodStateT m a = FoodStateT (StateT FoodState m a)
 
 data Food = Food {
     name :: T.Text,
-    protein :: Protein,
-    calories :: Calories,
-    typicalWeight :: Maybe Int, -- In grams
-    typicalAmount :: Maybe Float -- ie. Number of oreos
+    protein      :: Protein,
+    fat          :: Fat,
+    carbs        :: Carbs,
+    weightBased  :: Maybe Weight,
+    amountBased   :: Bool
   } | Recipe {
     ingredients :: [Food]
-  } deriving (Data, Typeable)
+  } deriving (Data, Typeable, Show, Eq)
 
+calories :: Food -> Calories
+calories (Food _ p f c _ _) = 4*p + 4*c + 9*f
+
+instance Ord Food where
+  compare food1 food2 = compare (name food1) (name food2)
 
 
 myUpdate :: FoodState -> Update FoodState ()
@@ -49,7 +59,7 @@ myUpdate arg = put arg
 myQuery :: Query FoodState FoodState
 myQuery = ask
 
-$(deriveSafeCopy 0 'base ''Food)
+$(deriveSafeCopy 1 'base ''Food)
 $(deriveSafeCopy 0 'base ''FoodState)
 $(makeAcidic ''FoodState ['myUpdate, 'myQuery])
 
@@ -87,14 +97,9 @@ foodStateSave st = liftIO $ do
 
 
 foodList :: Monad m => FoodStateT m [Food]
-foodList = filterFood ""
-
-
--- TODO support more than equality.
-filterFood :: Monad m => T.Text -> FoodStateT m [Food]
-filterFood pat = do
+foodList = do
   FoodState foods <- get
-  return $ filter (\food -> (name food) == pat) foods
+  return foods
 
 addFood :: Monad m => Food -> FoodStateT m ()
 addFood food = do
@@ -102,4 +107,4 @@ addFood food = do
   modify (\(FoodState foods) -> FoodState $ food:foods)
 
 remFood :: Monad m => T.Text -> FoodStateT m ()
-remFood nametorem = modify (\(FoodState foods) -> FoodState $ filter (\food -> (name food) == nametorem) foods)
+remFood nametorem = modify (\(FoodState foods) -> FoodState $ filter (\food -> (name food) /= nametorem) foods)

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances  #-}
 module IO (
-prompt, pressAnyKey, printTable, pad,
+prompt, pressAnyKey, printTable, pad, searchPrompt, yesnoPrompt, YNOpt(..),
 liftIO,
 module Text.Printf.Mauke
 )  where 
@@ -15,6 +15,7 @@ import System.IO (hFlush, stdout)
 import System.Console.Haskeline
 
 import Text.Printf.Mauke
+import Text.Regex.Posix
 
 instance PrintfArg TL.Text where
   embed = AStr . TL.unpack
@@ -36,6 +37,15 @@ instance FromString T.Text where
 
 instance FromString String where
   fromString = Just
+
+instance FromString Float where
+  fromString = Just . read
+
+
+data YNOpt = DefYes | DefNo
+yesnoPrompt :: (MonadException m) => String -> YNOpt -> InputT m Bool
+yesnoPrompt str DefYes = prompt str >>= (\answer -> return $ answer /= ("no" :: String))
+yesnoPrompt str DefNo  = prompt str >>= (\answer -> return $ answer == ("yes" :: String))
 
 prompt :: (MonadException m, FromString a) => String -> InputT m a
 prompt str = loop
@@ -70,5 +80,18 @@ printTable tdata = do
 pad :: Int -> String -> String
 pad i str = str ++ replicate (i - length str) ' '
 
-searchPrompt :: (MonadException m, FromString a) => [a] -> InputT m [a]
-searchPrompt = undefined
+searchPrompt :: MonadException m => [T.Text] -> m [T.Text]
+searchPrompt textPossibles = do
+  let
+    completefunc = completeWord Nothing "" $ return . testWords
+  searchTerm <- runInputT (setComplete completefunc defaultSettings) $ getInputLine "Search:"
+  return $ take 25 $ case searchTerm of
+    Nothing -> textPossibles
+    Just searchTerm' -> map T.pack $ filter (=~ searchTerm') possibles
+  where
+    possibles = map T.unpack textPossibles
+    testWords :: String -> [Completion]
+    testWords left = case filter (=~ left) possibles of
+      [] -> []
+      [x] -> [Completion x x False]
+      xs -> map (\str -> Completion left str False) xs
