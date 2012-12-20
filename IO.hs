@@ -9,6 +9,7 @@ import Control.Monad.Trans
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Safe
+import Data.List as L (transpose)
 
 import System.IO (hFlush, stdout)
 import System.Console.Haskeline
@@ -47,3 +48,24 @@ prompt str = loop
           case fromString x of
             Nothing -> loop
             Just x' -> return x'
+
+{-
+testTable :: [[String]]
+testTable = [
+  [pad "col1" 12, "col2","col"],
+  ["asdf",pad "fdsaasdfasdf" 123,"asd"],
+  ["1234567","123","000000"]]
+-}
+
+printTable :: [[String]] -> IO ()
+printTable tdata = do
+  let inverted = L.transpose tdata
+      colmaxlens = fmap (maximum . map length) $ inverted
+  mapM_ println $ zip (cycle [colmaxlens]) tdata
+  where
+    println (_,[]) = putStrLn ""
+    println ((len:ls),(x:xs)) = printcell len x >> println (ls, xs)
+    printcell len x = putStr x >> putStr (replicate (len - length x + 1) ' ')
+
+pad :: String -> Int -> String
+pad str i = str ++ replicate (i - length str) ' '
