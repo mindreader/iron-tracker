@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances  #-}
 module IO (
-prompt, pressAnyKey,
+prompt, pressAnyKey, printTable, pad,
 liftIO,
 module Text.Printf.Mauke
 )  where 
@@ -52,8 +52,8 @@ prompt str = loop
 {-
 testTable :: [[String]]
 testTable = [
-  [pad "col1" 12, "col2","col"],
-  ["asdf",pad "fdsaasdfasdf" 123,"asd"],
+  [pad 12 "col1", "col2","col"],
+  ["asdf",pad 123 "fdsaasdfasdf","asd"],
   ["1234567","123","000000"]]
 -}
 
@@ -67,5 +67,5 @@ printTable tdata = do
     println ((len:ls),(x:xs)) = printcell len x >> println (ls, xs)
     printcell len x = putStr x >> putStr (replicate (len - length x + 1) ' ')
 
-pad :: String -> Int -> String
-pad str i = str ++ replicate (i - length str) ' '
+pad :: Int -> String -> String
+pad i str = str ++ replicate (i - length str) ' '

@@ -9,6 +9,7 @@ import qualified Data.Text as T
 import Menu
 import Data.List ((\\))
 import Data.Default (def)
+import Data.Maybe (isJust)
 
 import PlateCalc
 
@@ -67,7 +68,12 @@ printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT (InputT
 printWorkout f = do
   exers <- exercisesWithInfo currentWorkoutList
   when (null exers) $ liftIO $ printf "You do not have any exercises set up in your workout.\n"
-  mapM_ (liftIO . printExer) $ fmap (fmap (fmap (fmap f))) exers
+  liftIO $ printTable . map formatExer . fmap (fmap (fmap (fmap f))) $ exers
+  where
+    formatExer (Exercise label, (date, prof)) = [T.unpack label, maybe "(none)" formatProficiency prof, maybe "" show date]
+    formatProf Nothing = "(never done)"
+    formatProf (Just (Proficiency 0 reps)) = show reps
+    formatProf (Just (Proficiency weight reps)) = printf "%d@%d (%s)" reps weight (displayPlateCalc weight)
 
 
 exercisesWithInfo :: Monad m => FitStateT m [Exercise] -> FitStateT m [(Exercise, (Maybe Day, Maybe Proficiency))]
@@ -79,23 +85,10 @@ exercisesWithInfo f = f >>= mapM addInfo
       lastworkout <- getLastWorkout label
       return (exer, (lastworkout, prof))
 
-printExer (Exercise label, (date,prof)) =
-  printf "%-25s %-40s %s\n" (exerLabel label) (printMaybeProficiency prof) (printMaybeDate date)
-  where
-    exerLabel :: PrintfArg a => a-> String
-    exerLabel label = printf "%s:" label
 
-
-printMaybeProficiency :: Maybe Proficiency -> String
-printMaybeProficiency  Nothing                         = "(none)"
-printMaybeProficiency (Just (Proficiency 0 reps))      = printf "%15d" reps
-printMaybeProficiency (Just (Proficiency weight reps)) = printf "%15s (%s)" (printf "%d@%d" reps weight :: String) (displayPlateCalc weight)
-
-printMaybeDate Nothing     = ""
-printMaybeDate (Just date) = show date
-
-
-
+formatProficiency :: Proficiency -> String
+formatProficiency (Proficiency 0 reps)      = printf "%d" reps
+formatProficiency (Proficiency weight reps) = printf "%s (%s)" (pad 6 $ printf "%d@%d" reps weight :: String) (displayPlateCalc weight)
 
 workoutMode :: MonadException m => FitStateT (InputT m) ()
 workoutMode = do
@@ -110,8 +103,8 @@ workoutMode = do
           mprof <- getProficiency exer
           let newmprof = fmap (epleyize newreps) mprof
           mdate <- getLastWorkout exer
-          liftIO $ printf "For %s you were last able to do %s on %s.\n" exer (printMaybeProficiency mprof) (printMaybeDate mdate)
-          liftIO $ printf "You must do %s.\n" (printMaybeProficiency newmprof)
+          liftIO $ printf "For %s you were last able to do %s on %s.\n" exer (maybe "*never done before*" formatProficiency mprof) (maybe "" show mdate)
+          when (isJust newmprof) $ liftIO $ printf "You must do %s.\n" (maybe "" formatProficiency newmprof)
           change <- lift $ prompt "Any change? (y/n)"
           when (change == ("y"::String)) $ do
             updateExerciseProcedure exer
