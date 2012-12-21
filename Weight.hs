@@ -1,6 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, MultiParamTypeClasses, GeneralizedNewtypeDeriving #-}
 
-module Weight(runWeightRoutine) where
+module Weight where
 
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
@@ -18,13 +18,24 @@ import FitState
 
 import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
 import Data.Time (Day)
+import Control.Monad.Identity
+
+newtype WeightRoutine m a = WeightRoutine {
+  unwr :: (FitStateT (InputT m) a)
+} deriving (Monad, MonadIO)
+
+instance MonadException m => MonadInput WeightRoutine m where
+  liftInput = WeightRoutine . lift
 
 
 data WeightMenuCommand = MWWorkoutMode | MWWorkoutStatus | MWAdjustWorkoutReps | MWUpdate | MWInclude | MWDisInclude | MWAdd | MWRemove deriving (Eq, Ord)
 
 runWeightRoutine :: MonadException m => m ()
-runWeightRoutine = runInputT defaultSettings (runFitStateT mainLoop)
+runWeightRoutine = runWeightRoutine' mainLoop
 
+
+runWeightRoutine' :: MonadException m => WeightRoutine m () -> m ()
+runWeightRoutine' = runInputT defaultSettings . runFitStateT . unwr
 
 mainLoop :: (MonadException m) => FitStateT (InputT m) ()
 mainLoop = do

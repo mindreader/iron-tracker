@@ -1,7 +1,7 @@
-{-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances  #-}
+{-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances, MultiParamTypeClasses #-}
 module IO (
 prompt, pressAnyKey, printTable, pad, searchPrompt, yesnoPrompt, YNOpt(..),
-liftIO,
+liftIO,MonadInput(..),
 module Text.Printf.Mauke
 )  where 
 
@@ -16,6 +16,12 @@ import System.Console.Haskeline
 
 import Text.Printf.Mauke
 import Text.Regex.Posix
+
+class MonadException m => MonadInput t m where
+  liftInput :: InputT m a -> t m a
+
+instance MonadException m => MonadInput InputT m where
+  liftInput = id
 
 instance PrintfArg TL.Text where
   embed = AStr . TL.unpack
@@ -44,12 +50,12 @@ instance FromString Float where
 
 
 data YNOpt = DefYes | DefNo
-yesnoPrompt :: (MonadException m) => String -> YNOpt -> InputT m Bool
+yesnoPrompt :: MonadInput t m => String -> YNOpt -> InputT m Bool
 yesnoPrompt str DefYes = prompt str >>= (\answer -> return $ answer /= ("no" :: String))
 yesnoPrompt str DefNo  = prompt str >>= (\answer -> return $ answer == ("yes" :: String))
 
-prompt :: (MonadException m, FromString a) => String -> InputT m a
-prompt str = loop
+prompt :: (MonadInput t m, FromString a) => String -> t m a
+prompt str = liftInput $ loop
   where
     loop = do
       mx <- getInputLine $ str
