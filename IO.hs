@@ -1,27 +1,31 @@
-{-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
 module IO (
 prompt, pressAnyKey, printTable, pad, searchPrompt, yesnoPrompt, YNOpt(..),
 liftIO,MonadInput(..),
 module Text.Printf.Mauke
 )  where 
 
-import Control.Monad.Trans
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Safe
 import Data.List as L (transpose)
 
 import System.IO (hFlush, stdout)
-import System.Console.Haskeline
+import System.Console.Haskeline as Haskeline
+import System.Console.Haskeline.MonadException
+import Control.Monad.State.Strict
 
 import Text.Printf.Mauke
 import Text.Regex.Posix
 
-class MonadException m => MonadInput t m where
-  liftInput :: InputT m a -> t m a
+class MonadException m => MonadInput m where
+  getInputLine :: String -> m (Maybe String)
 
-instance MonadException m => MonadInput InputT m where
-  liftInput = id
+instance MonadException m => MonadInput (InputT m) where
+  getInputLine = Haskeline.getInputLine
+
+instance (MonadInput m) => MonadInput (StateT s m) where
+  getInputLine = lift . IO.getInputLine
 
 instance PrintfArg TL.Text where
   embed = AStr . TL.unpack
@@ -48,17 +52,16 @@ instance FromString Float where
   fromString = Just . read
 
 
-
 data YNOpt = DefYes | DefNo
-yesnoPrompt :: MonadInput t m => String -> YNOpt -> InputT m Bool
+yesnoPrompt :: MonadInput m => String -> YNOpt -> InputT m Bool
 yesnoPrompt str DefYes = prompt str >>= (\answer -> return $ answer /= ("no" :: String))
 yesnoPrompt str DefNo  = prompt str >>= (\answer -> return $ answer == ("yes" :: String))
 
-prompt :: (MonadInput t m, FromString a) => String -> t m a
-prompt str = liftInput $ loop
+prompt :: (MonadInput m, FromString a) => String -> m a
+prompt str = loop
   where
     loop = do
-      mx <- getInputLine $ str
+      mx <- IO.getInputLine $ str
       case mx of
         Nothing -> loop
         Just x -> do
@@ -87,11 +90,11 @@ printTable tdata = do
 pad :: Int -> String -> String
 pad i str = str ++ replicate (i - length str) ' '
 
-searchPrompt :: MonadException m => [T.Text] -> m [T.Text]
+searchPrompt :: MonadInput m => [T.Text] -> m [T.Text]
 searchPrompt textPossibles = do
   let -- The \t prevents it from defaulting to space, which causes it to fail on any strings with spaces in them.
       completefunc = completeWord Nothing "\t" $ return . testWords
-  searchTerm <- runInputT (setComplete completefunc defaultSettings) $ getInputLine "Search:"
+  searchTerm <- runInputT (setComplete completefunc defaultSettings) $ Haskeline.getInputLine "Search:"
   return $ take 25 $ case searchTerm of
     Nothing -> textPossibles
     Just searchTerm' -> map T.pack $ filter (=~ searchTerm') possibles
