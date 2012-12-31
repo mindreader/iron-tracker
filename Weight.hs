@@ -24,20 +24,18 @@ newtype WeightRoutine m a = WeightRoutine {
   unwr :: (FitStateT (InputT m) a)
 } deriving (Monad, MonadIO)
 
-instance MonadException m => MonadInput WeightRoutine m where
-  liftInput = WeightRoutine . lift
 
 
 data WeightMenuCommand = MWWorkoutMode | MWWorkoutStatus | MWAdjustWorkoutReps | MWUpdate | MWInclude | MWDisInclude | MWAdd | MWRemove deriving (Eq, Ord)
 
 runWeightRoutine :: MonadException m => m ()
-runWeightRoutine = runWeightRoutine' mainLoop
+runWeightRoutine = undefined -- runWeightRoutine' mainLoop
 
 
 runWeightRoutine' :: MonadException m => WeightRoutine m () -> m ()
-runWeightRoutine' = runInputT defaultSettings . runFitStateT . unwr
+runWeightRoutine' = undefined -- runInputT defaultSettings . runFitStateT . unwr
 
-mainLoop :: (MonadException m) => FitStateT (InputT m) ()
+mainLoop :: (MonadException m) => WeightRoutine m ()
 mainLoop = do
   command <- liftIO $ inputMenu (def { quitOption = True }) "Weight Menu" menuCrud
 
@@ -69,8 +67,8 @@ mainLoop = do
       (MWRemove,            "Remove exercise")]
 
 
-printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> FitStateT m ()
-printWorkout f = do
+printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> WeightRoutine m ()
+printWorkout f = WeightRoutine $ do
   exers <- exercisesWithInfo currentWorkoutList
   when (null exers) $ liftIO $ printf "You do not have any exercises set up in your workout.\n"
   liftIO $ printTable . map formatExer . fmap (fmap (fmap (fmap f))) $ exers
@@ -81,8 +79,8 @@ printWorkout f = do
     formatProf (Just (Proficiency weight reps)) = printf "%d@%d (%s)" reps weight (displayPlateCalc weight)
 
 
-exercisesWithInfo :: Monad m => FitStateT m [Exercise] -> FitStateT m [(Exercise, (Maybe Day, Maybe Proficiency))]
-exercisesWithInfo f = f >>= mapM addInfo
+exercisesWithInfo :: Monad m => WeightRoutine m [Exercise] -> WeightRoutine m [(Exercise, (Maybe Day, Maybe Proficiency))]
+exercisesWithInfo f = WeightRoutine $ f >>= mapM addInfo
   where
 
     addInfo exer@(Exercise label) = do
@@ -94,8 +92,8 @@ formatProficiency :: Proficiency -> String
 formatProficiency (Proficiency 0 reps)      = printf "%d" reps
 formatProficiency (Proficiency weight reps) = printf "%s (%s)" (pad 6 $ printf "%d@%d" reps weight :: String) (displayPlateCalc weight)
 
-workoutMode :: MonadException m => FitStateT (InputT m) ()
-workoutMode = do
+workoutMode :: MonadException m => WeightRoutine m ()
+workoutMode = WeightRoutine $ do
   newreps <- lift $ prompt "Reps you are aiming for:"
   let
     workoutMode' exers = do
@@ -120,8 +118,8 @@ workoutMode = do
   currentWorkoutList >>= workoutMode'
 
 
-adjustWorkoutByReps :: (MonadException m) => FitStateT (InputT m) ()
-adjustWorkoutByReps = do
+adjustWorkoutByReps :: (MonadException m) => WeightRoutine m ()
+adjustWorkoutByReps = WeightRoutine $ do
   newreps <- lift $ prompt "Reps you want to do:"
   printWorkout $ epleyize newreps
 
@@ -139,8 +137,8 @@ epleyize newreps (Proficiency weight reps) = Proficiency (epley reps weight newr
 
 
  
-updateExercise :: (MonadException m) => FitStateT (InputT m) ()
-updateExercise = do
+updateExercise :: (MonadException m) => WeightRoutine (InputT m) ()
+updateExercise = WeightRoutine $ do
   workout <- currentWorkoutList
 
   mexer <- liftIO $ inputMenu def "Update Exercise" workout
@@ -150,8 +148,8 @@ updateExercise = do
     MenuQuit -> return ()
 
 
-updateExerciseProcedure :: (MonadException m) => T.Text -> FitStateT (InputT m) ()
-updateExerciseProcedure exer = do
+updateExerciseProcedure :: (MonadException m) => T.Text -> WeightRoutine (InputT m) ()
+updateExerciseProcedure exer = WeightRoutine $ do
       mprof <- getProficiency exer
       case mprof of
         Nothing -> liftIO $ printf "You have never done this exercise.\n"
@@ -160,13 +158,13 @@ updateExerciseProcedure exer = do
       newweight <- lift $ prompt "New weight (0 for bodyweight):"
       updateProficiency exer newreps newweight
 
-addNewExercise :: (MonadException m) => FitStateT (InputT m) ()
-addNewExercise = do
+addNewExercise :: (MonadException m) => WeightRoutine m ()
+addNewExercise = WeightRoutine $ do
   name <- lift $ prompt "Exercise Name:"
   createExercise name
 
-removeOldExercise :: (MonadException m) => FitStateT (InputT m) ()
-removeOldExercise = do
+removeOldExercise :: (MonadException m) => WeightRoutine m ()
+removeOldExercise = WeightRoutine $ do
   exercises <- exerciseList
   mexer <- liftIO $ inputMenu def "Known Exercises" exercises
   case mexer of
@@ -178,8 +176,8 @@ removeOldExercise = do
         else deleteExercise exer
     MenuQuit -> return ()
 
-addExerciseToWorkout :: (MonadIO m) => FitStateT m ()
-addExerciseToWorkout = do
+addExerciseToWorkout :: (MonadIO m) => WeightRoutine m ()
+addExerciseToWorkout = WeightRoutine $ do
   exercises <- exerciseList
   workout <- currentWorkoutList
   let exercisesnotinworkout = exercises \\ workout
@@ -190,8 +188,8 @@ addExerciseToWorkout = do
       addToWorkout exer
     MenuQuit -> return ()
   
-removeExerciseFromWorkout :: (MonadIO m) => FitStateT m ()
-removeExerciseFromWorkout = do
+removeExerciseFromWorkout :: (MonadIO m) => WeightRoutine m ()
+removeExerciseFromWorkout = WeightRoutine $ do
   workout <- currentWorkoutList
   mexer <- liftIO $ inputMenu def "Exercises Not In Workout" workout
   case mexer of
