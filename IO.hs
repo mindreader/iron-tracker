@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
 module IO (
 prompt, pressAnyKey, printTable, pad, searchPrompt, yesnoPrompt, YNOpt(..),
-liftIO,MonadInput(..),
+liftIO,
 module Text.Printf.Mauke
 )  where 
 
@@ -18,23 +18,14 @@ import Control.Monad.State.Strict
 import Text.Printf.Mauke
 import Text.Regex.Posix
 
-class MonadException m => MonadInput m where
-  getInputLine :: String -> m (Maybe String)
-
-instance MonadException m => MonadInput (InputT m) where
-  getInputLine = Haskeline.getInputLine
-
-instance (MonadInput m) => MonadInput (StateT s m) where
-  getInputLine = lift . IO.getInputLine
-
 instance PrintfArg TL.Text where
   embed = AStr . TL.unpack
 
 instance PrintfArg T.Text where
   embed = AStr . T.unpack
 
-
-pressAnyKey = liftIO $ printf "Press any key to continue\n" >> hFlush stdout >> getChar >> return ()
+pressAnyKey :: IO ()
+pressAnyKey = printf "Press any key to continue\n" >> hFlush stdout >> getChar >> return ()
 
 class FromString a where
   fromString :: String -> Maybe a
@@ -53,15 +44,14 @@ instance FromString Float where
 
 
 data YNOpt = DefYes | DefNo
-yesnoPrompt :: MonadInput m => String -> YNOpt -> InputT m Bool
-yesnoPrompt str DefYes = prompt str >>= (\answer -> return $ answer /= ("no" :: String))
-yesnoPrompt str DefNo  = prompt str >>= (\answer -> return $ answer == ("yes" :: String))
+yesnoPrompt :: String -> YNOpt -> IO Bool
+yesnoPrompt str DefYes = runInputT defaultSettings $ prompt str >>= (\answer -> return $ answer /= ("no" :: String))
+yesnoPrompt str DefNo  = runInputT defaultSettings $ prompt str >>= (\answer -> return $ answer == ("yes" :: String))
 
-prompt :: (MonadInput m, FromString a) => String -> m a
-prompt str = loop
+prompt str = runInputT defaultSettings $ loop
   where
     loop = do
-      mx <- IO.getInputLine $ str
+      mx <- getInputLine $ str
       case mx of
         Nothing -> loop
         Just x -> do
@@ -90,7 +80,7 @@ printTable tdata = do
 pad :: Int -> String -> String
 pad i str = str ++ replicate (i - length str) ' '
 
-searchPrompt :: MonadInput m => [T.Text] -> m [T.Text]
+searchPrompt :: [T.Text] -> IO [T.Text]
 searchPrompt textPossibles = do
   let -- The \t prevents it from defaulting to space, which causes it to fail on any strings with spaces in them.
       completefunc = completeWord Nothing "\t" $ return . testWords
