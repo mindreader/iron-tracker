@@ -10,7 +10,7 @@ name:                iron-tracker
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.2.0.0
+version:             1.0.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            Weight Lifting Exercise Tracker
@@ -47,7 +47,7 @@ executable iron-tracker
   main-is: Main.hs
   
   -- Modules included in this executable, other than Main.
-  other-modules: IO, Menu, FitState, Weight, Food, FoodState
+  other-modules: IO, Menu, Weight, Food, FoodState, Weight.Log, Weight.Config, Weight.Formulas, Weight.PlateCalc
   
   -- Other library packages from which modules are imported.
   build-depends: 
@@ -62,5 +62,9 @@ executable iron-tracker
     haskeline,
     time,
     printf-mauke >= 0.5.0,
-    regex-posix
+    regex-posix,
+    lens >= 3.7,
+    sqlite-simple >= 0.2,
+    yaml >= 0.8,
+    unordered-containers >= 0.2
   
