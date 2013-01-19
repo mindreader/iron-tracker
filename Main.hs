@@ -2,6 +2,7 @@
 
 module Main where
 
+import Util
 import Menu
 import Weight (runWeightRoutine)
 -- import Food (runFoodRoutine)
@@ -20,6 +21,7 @@ main :: IO ()
 main = do
   hSetBuffering stdin NoBuffering
   hSetBuffering stdout LineBuffering
+  createStateDir
   mainLoop
 
 

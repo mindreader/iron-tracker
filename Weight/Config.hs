@@ -14,6 +14,7 @@ import Data.Yaml
 import Data.Default
 
 import Weight.Types
+import Util
 
 instance FromJSON WeightState where
   parseJSON (Object v) = do
@@ -33,4 +34,6 @@ parseExerciseWithKey k (Object v) = do
 parseExerciseWithKey _ _ = mzero
 
 loadWeightConfig :: IO WeightState
-loadWeightConfig = fmap (maybe def id) $ decodeFile "blah.yaml"
+loadWeightConfig = do
+  statedir <- stateDir
+  fmap (maybe def id) $ decodeFile (statedir ++ "/weight.yaml")

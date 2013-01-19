@@ -16,11 +16,15 @@ import Control.Exception (bracket)
 import Weight.Types
 import Control.Monad.Trans (liftIO, MonadIO)
 
+import Util
+
 instance FromRow Proficiency where
   fromRow = Pro <$> field <*> (fmap toRational (field :: RowParser Double))
 
 withDb :: MonadIO m => (Connection -> IO a) -> m a
-withDb st = liftIO $ bracket (open "test.db") close st
+withDb st = do
+  statedir <- liftIO $ stateDir
+  liftIO $ bracket (open (statedir++"/weight.db")) close st
 
 logLift :: MonadIO m => Exercise -> Proficiency -> m ()
 logLift exer prof = withDb $ \conn -> do
