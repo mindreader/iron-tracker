@@ -95,7 +95,6 @@ workoutMode = do
         else case headMay history of
                Nothing -> return ()
                Just (_,prof) -> logLift exer prof
-      pressAnyKey
 
     printHistory :: [(Day, Proficiency)] -> App ()
     printHistory history = do
