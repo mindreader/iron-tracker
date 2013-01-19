@@ -86,7 +86,7 @@ workoutMode = do
     doExercise today exer = do
       history <- liftHistory exer 4
       let (TryThis tr tw) = suggestNewRepWeight today $ map (\(date,(Pro r w)) -> DidThis (fromIntegral r) w date) history
-      liftIO $ printf "\nExercise: %s\n" (exer ^. eName)
+      liftIO $ printf "\n%s\n" (exer ^. eName)
       printHistory history
       liftIO $ printf "You must do %s.\n" (formatRepsWeight tr tw)
       change <- liftIO $ prompt "Any change? (y/n)"
@@ -99,7 +99,6 @@ workoutMode = do
 
     printHistory :: [(Day, Proficiency)] -> App ()
     printHistory history = do
-      liftIO (printf "Recent History:\n")
       mapM_ printHistory' history
       where
         printHistory' (day, pro) = liftIO $ printf " %s : %s\n" (show day) (formatRepsWeight (pro ^. pReps) (pro ^. pWeight))
