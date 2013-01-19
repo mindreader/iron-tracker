@@ -3,16 +3,15 @@
 module Menu where
 
 
-import Prelude hiding (catch)
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 
 import Data.Maybe
 import qualified Data.Map as M
-import Safe (atMay, readMay)
+import Safe (atMay)
 import Data.Default
 
 import Control.Monad (when)
+import Control.Monad.Trans (MonadIO)
 
 import Data.Char (isAlphaNum)
 import Data.List (findIndex)
@@ -55,8 +54,8 @@ instance Default MenuOptions where
 
 data MenuResult b = MenuQuit | MenuInput b | MenuError
 
-inputMenu :: Menuable a => MenuOptions -> T.Text -> a -> IO (MenuResult (MenuKey a))
-inputMenu opts title menuable = loop
+inputMenu :: (MonadIO m, Menuable a) => MenuOptions -> T.Text -> a -> m (MenuResult (MenuKey a))
+inputMenu opts title menuable = liftIO $ loop
   where
     loop = case items of
       [] -> return MenuError

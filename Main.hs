@@ -4,7 +4,7 @@ module Main where
 
 import Menu
 import Weight (runWeightRoutine)
-import Food (runFoodRoutine)
+-- import Food (runFoodRoutine)
 
 
 import qualified Data.Text as T
@@ -35,4 +35,4 @@ mainLoop = do
     MenuInput command' -> do
       case command' of
         MMWeights -> runWeightRoutine
-        MMFood    -> runFoodRoutine
+        MMFood    -> return () -- runFoodRoutine

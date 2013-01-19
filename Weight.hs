@@ -1,43 +1,53 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, MultiParamTypeClasses, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings, TemplateHaskell, GeneralizedNewtypeDeriving #-}
+module Weight(
+  runWeightRoutine
+) where
 
-module Weight where
+import Control.Lens
+import Data.Time (localDay,zonedTimeToLocalTime,getZonedTime,Day)
 
-import Control.Monad.IO.Class
-import Control.Monad.Trans (lift)
-import Control.Monad (when)
 import qualified Data.Text as T
+import qualified Data.Map as M
+import qualified Data.List as L
+
+import Data.Default
+import Safe
+
+
+import Control.Monad.State
+
+import Weight.Formulas
+import Weight.Config
+import Weight.Types
+import Weight.Log
+import Weight.PlateCalc
+
 import Menu
-import Data.List ((\\))
-import Data.Default (def)
-import Data.Maybe (isJust)
-
-import PlateCalc
-
 import IO
-import FitState
 
-import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
-import Data.Time (Day)
-import Control.Monad.Identity
+data WeightMenuCommand = MWWorkoutMode | MWWorkoutStatus | MWAdjustWorkoutReps | MWUpdate | MWInclude | MWDisInclude deriving (Eq, Ord)
 
-newtype WeightRoutine m a = WeightRoutine {
-  unwr :: (FitStateT (InputT m) a)
-} deriving (Monad, MonadIO)
+newtype App a = App (StateT AppState IO a)
+  deriving (Monad, MonadState AppState, MonadIO, Functor)
+
+data AppState = AS {
+  _weightState :: WeightState
+}
+
+makeLenses ''AppState
+
+runWeightRoutine :: IO ()
+runWeightRoutine = runApp mainLoop
+
+runApp :: App a -> IO a
+runApp (App s) = do
+  ws <- loadWeightConfig
+  evalStateT s (AS ws)
 
 
-
-data WeightMenuCommand = MWWorkoutMode | MWWorkoutStatus | MWAdjustWorkoutReps | MWUpdate | MWInclude | MWDisInclude | MWAdd | MWRemove deriving (Eq, Ord)
-
-runWeightRoutine :: MonadException m => m ()
-runWeightRoutine = undefined -- runWeightRoutine' mainLoop
-
-
-runWeightRoutine' :: MonadException m => WeightRoutine m () -> m ()
-runWeightRoutine' = undefined -- runInputT defaultSettings . runFitStateT . unwr
-
-mainLoop :: (MonadException m) => WeightRoutine m ()
+mainLoop :: App ()
 mainLoop = do
-  command <- liftIO $ inputMenu (def { quitOption = True }) "Weight Menu" menuCrud
+  command <- inputMenu (def { quitOption = True }) "Weight Menu" menuCrud
 
   case command of
     MenuError -> mainLoop
@@ -47,11 +57,9 @@ mainLoop = do
         MWWorkoutMode       -> workoutMode
         MWWorkoutStatus     -> printWorkout id
         MWAdjustWorkoutReps -> adjustWorkoutByReps
+        MWUpdate            -> updateSingleExercise
         MWInclude           -> addExerciseToWorkout
-        MWDisInclude        -> removeExerciseFromWorkout
-        MWUpdate            -> updateExercise
-        MWAdd               -> addNewExercise
-        MWRemove            -> removeOldExercise
+        MWDisInclude        -> remExerciseFromWorkout
       continue
 
   where
@@ -62,176 +70,119 @@ mainLoop = do
       (MWWorkoutStatus,     "Current workout proficiencies"::T.Text),
       (MWUpdate,            "Update an exercise in current workout"),
       (MWInclude,           "Add exercise to workout"),
-      (MWDisInclude,        "Remove exercise from workout"),
-      (MWAdd,               "Add New exercise"),
-      (MWRemove,            "Remove exercise")]
+      (MWDisInclude,        "Remove exercise from workout")]
 
 
-printWorkout :: (MonadIO m) => (Proficiency -> Proficiency) -> WeightRoutine m ()
-printWorkout f = WeightRoutine $ do
-  exers <- exercisesWithInfo currentWorkoutList
+
+
+workoutMode :: App ()
+workoutMode = do
+  workout <- currentWorkout
+  today <- liftIO $ fmap (localDay . zonedTimeToLocalTime) getZonedTime
+  mapM_ (doExercise today) workout
+  liftIO $ printf "Workout complete.\n"
+  where
+    doExercise :: Day ->  Exercise -> App ()
+    doExercise today exer = do
+      history <- liftHistory exer 4
+      let (TryThis tr tw) = suggestNewRepWeight today $ map (\(date,(Pro r w)) -> DidThis (fromIntegral r) w date) history
+      liftIO $ printf "\nExercise: %s\n" (exer ^. eName)
+      printHistory history
+      liftIO $ printf "You must do %s.\n" (formatRepsWeight tr tw)
+      change <- liftIO $ prompt "Any change? (y/n)"
+      if (change == ("y"::String))
+        then inputProficiency exer >>= logLift exer
+        else case headMay history of
+               Nothing -> return ()
+               Just (_,prof) -> logLift exer prof
+      pressAnyKey
+
+    printHistory :: [(Day, Proficiency)] -> App ()
+    printHistory history = do
+      liftIO (printf "Recent History:\n")
+      mapM_ printHistory' history
+      where
+        printHistory' (day, pro) = liftIO $ printf " %s : %s\n" (show day) (formatRepsWeight (pro ^. pReps) (pro ^. pWeight))
+
+    formatRepsWeight :: Reps -> Weight -> String
+    -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
+    formatRepsWeight reps 0.0 = printf "%d at whatever you think you can do" reps
+    formatRepsWeight reps weight = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (displayPlateCalc $ round weight)
+
+
+inputProficiency :: Exercise -> App Proficiency
+inputProficiency exer = do
+      newreps   <- liftIO $ prompt "New reps:"
+      newweight <- liftIO $ prompt "New weight (0 for bodyweight):"
+      return $ Pro newreps newweight
+
+
+exerciseList = fmap (fmap snd . M.toList. (\x -> x ^. weightState ^. exercises)) get
+currentWorkout = fmap L.sort $ exerciseList >>= dbFilterCurrentWorkout
+
+printWorkout :: (Proficiency -> Proficiency) -> App ()
+printWorkout adjuster = do
+  exers <- currentWorkout
+  let maxExerNameLen = T.length $ L.maximumBy (\x y -> compare (T.length (x ^. eName)) (T.length (y ^. eName))) exers ^. eName
   when (null exers) $ liftIO $ printf "You do not have any exercises set up in your workout.\n"
-  liftIO $ printTable . map formatExer . fmap (fmap (fmap (fmap f))) $ exers
+  mapM exerWithProf exers >>= mapM_ (liftIO . putStrLn . formatLine maxExerNameLen)
   where
-    formatExer (Exercise label, (date, prof)) = [T.unpack label, maybe "(none)" formatProficiency prof, maybe "" show date]
-    formatProf Nothing = "(never done)"
-    formatProf (Just (Proficiency 0 reps)) = show reps
-    formatProf (Just (Proficiency weight reps)) = printf "%d@%d (%s)" reps weight (displayPlateCalc weight)
+    exerWithProf :: Exercise -> App (Either Exercise (Day, Proficiency, Exercise))
+    exerWithProf exer = do
+      last <- liftHistory exer 1
+      case headMay last of
+        Nothing          -> return . Left $ exer
+        Just (day, prof) -> return . Right $ (day, adjuster prof, exer)
+        
+    formatLine namelen (Left exercise) = printf ("%" ++ show namelen ++ "s : (never done)") (exercise ^. eName)
+    formatLine namelen (Right (date, Pro reps 0.0, exercise)) = printf ("%" ++ show namelen ++ "s : %d") (exercise ^. eName) reps
+    formatLine namelen (Right (date, Pro reps weight, exercise)) = printf ("%" ++ show namelen ++ "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (displayPlateCalc $ round weight)
+
+rTrimZeros :: String -> String
+rTrimZeros = L.reverse . L.dropWhile (=='.') . L.dropWhile (== '0') . L.reverse
+
+adjustWorkoutByReps :: App ()
+adjustWorkoutByReps = do
+  newreps <- liftIO $ prompt "Reps you want to do:"
+  printWorkout $ adjustProfByReps newreps
 
 
-exercisesWithInfo :: Monad m => WeightRoutine m [Exercise] -> WeightRoutine m [(Exercise, (Maybe Day, Maybe Proficiency))]
-exercisesWithInfo f = WeightRoutine $ f >>= mapM addInfo
-  where
-
-    addInfo exer@(Exercise label) = do
-      prof <- getProficiency label
-      lastworkout <- getLastWorkout label
-      return (exer, (lastworkout, prof))
-
-formatProficiency :: Proficiency -> String
-formatProficiency (Proficiency 0 reps)      = printf "%d" reps
-formatProficiency (Proficiency weight reps) = printf "%s (%s)" (pad 6 $ printf "%d@%d" reps weight :: String) (displayPlateCalc weight)
-
-workoutMode :: MonadException m => WeightRoutine m ()
-workoutMode = WeightRoutine $ do
-  newreps <- lift $ prompt "Reps you are aiming for:"
-  let
-    workoutMode' exers = do
-      mexer <- liftIO $ inputMenu (def { quitOption = True }) "Select Next Exercise" exers
-      case mexer of
-        MenuError -> liftIO $ printf "You are finished with your workout.\n"
-        MenuQuit -> return ()
-        MenuInput exer -> do
-          mprof <- getProficiency exer
-          let newmprof = fmap (epleyize newreps) mprof
-          mdate <- getLastWorkout exer
-          liftIO $ printf "For %s you were last able to do %s on %s.\n" exer (maybe "*never done before*" formatProficiency mprof) (maybe "" show mdate)
-          when (isJust newmprof) $ liftIO $ printf "You must do %s.\n" (maybe "" formatProficiency newmprof)
-          change <- lift $ prompt "Any change? (y/n)"
-          when (change == ("y"::String)) $ do
-            updateExerciseProcedure exer
-          setLastWorkout exer
-          pressAnyKey
-          workoutMode' (filter (\(Exercise label) -> label /= exer) exers)
-
---  profs <- fmap (sortBy (compare `on` snd . snd) . fmap (fmap (fmap (fmap $ epleyize newreps)))) $ exercisesWithInfo currentWorkoutList
-  currentWorkoutList >>= workoutMode'
-
-
-adjustWorkoutByReps :: (MonadException m) => WeightRoutine m ()
-adjustWorkoutByReps = WeightRoutine $ do
-  newreps <- lift $ prompt "Reps you want to do:"
-  printWorkout $ epleyize newreps
-
-epleyize :: Int -> Proficiency -> Proficiency
-epleyize newreps (Proficiency weight reps) = Proficiency (epley reps weight newreps) newreps
-  where
-    --This one estimates suprisingly low on low rep ranges.
-    --oconnor :: Int -> Int -> Int -> Int
-    --oconnor r w r' = round $ (fromIntegral w) * (1+(0.025*(fromIntegral r))) / (1+(0.025 * (fromIntegral r')))
-
-    --This one is almost dead on for what I want.
-    epley :: Int -> Int -> Int -> Int
-    epley r w r' = round $ ((fromIntegral w * fromIntegral r / 30) + fromIntegral w) * (30 / (fromIntegral r'+30))
-
-
-
- 
-updateExercise :: (MonadException m) => WeightRoutine (InputT m) ()
-updateExercise = WeightRoutine $ do
-  workout <- currentWorkoutList
-
-  mexer <- liftIO $ inputMenu def "Update Exercise" workout
-  case mexer of
-    MenuError -> liftIO $ printf "You don't have any exercises set up for your workout.\n"
-    MenuInput exer -> updateExerciseProcedure exer
-    MenuQuit -> return ()
-
-
-updateExerciseProcedure :: (MonadException m) => T.Text -> WeightRoutine (InputT m) ()
-updateExerciseProcedure exer = WeightRoutine $ do
-      mprof <- getProficiency exer
-      case mprof of
-        Nothing -> liftIO $ printf "You have never done this exercise.\n"
-        Just (Proficiency weight reps)-> liftIO $ printf "You can currently do %d reps at %d pounds.\n" reps weight
-      newreps   <- lift $ prompt "New reps:"
-      newweight <- lift $ prompt "New weight (0 for bodyweight):"
-      updateProficiency exer newreps newweight
-
-addNewExercise :: (MonadException m) => WeightRoutine m ()
-addNewExercise = WeightRoutine $ do
-  name <- lift $ prompt "Exercise Name:"
-  createExercise name
-
-removeOldExercise :: (MonadException m) => WeightRoutine m ()
-removeOldExercise = WeightRoutine $ do
+updateSingleExercise :: App ()
+updateSingleExercise = do
   exercises <- exerciseList
-  mexer <- liftIO $ inputMenu def "Known Exercises" exercises
+  mexer <- liftIO $ inputMenu def "Pick Exercise To Update" exercises
   case mexer of
-    MenuError -> liftIO $ printf "You don't have any exercises in this database yet to delete.\n"
-    MenuInput exer -> do
-      confirm <- lift $ prompt "Are you sure? (type yes):"
-      if confirm /= ("yes" :: String)
-        then return ()
-        else deleteExercise exer
+    MenuError -> liftIO $ printf "You need to input some exercises to your config file."
+    MenuInput exer -> inputProficiency exer >>= logLift exer
     MenuQuit -> return ()
+  return ()
 
-addExerciseToWorkout :: (MonadIO m) => WeightRoutine m ()
-addExerciseToWorkout = WeightRoutine $ do
+addExerciseToWorkout :: App ()
+addExerciseToWorkout = do
   exercises <- exerciseList
-  workout <- currentWorkoutList
-  let exercisesnotinworkout = exercises \\ workout
+  workout <- currentWorkout
+  let exercisesnotinworkout = exercises L.\\ workout
   mexer <- liftIO $ inputMenu def "Exercises Not In Workout" exercisesnotinworkout
   case mexer of
     MenuError -> liftIO $ printf "You already have every known exercise in your workout.\n"
-    MenuInput exer -> do
-      addToWorkout exer
-    MenuQuit -> return ()
-  
-removeExerciseFromWorkout :: (MonadIO m) => WeightRoutine m ()
-removeExerciseFromWorkout = WeightRoutine $ do
-  workout <- currentWorkoutList
-  mexer <- liftIO $ inputMenu def "Exercises Not In Workout" workout
-  case mexer of
-    MenuError -> liftIO $ printf "You already have every known exercise in your workout.\n"
-    MenuInput exer -> do
-      remFromWorkout exer
-      liftIO $ printf "%s has been removed from your workout.\n" exer
+    MenuInput exer -> dbAddExerciseToWorkout exer
     MenuQuit -> return ()
  
-
-  
-  
-{-
-printWiki :: [(String, Int)] -> IO ()
-printWiki = mapM_ printfunc
-  where
-    printfunc (exer, w) = do
-      putChar '|'
-      putStr exer
-      putChar '|'
-      putStr (intercalate "|" $ map show (progression w))
-      putStrLn "|"
+remExerciseFromWorkout :: App ()
+remExerciseFromWorkout = do
+  workout <- currentWorkout
+  mexer <- liftIO $ inputMenu def "Exercises In Workout" workout
+  case mexer of
+    MenuError -> liftIO $ printf "You don't have any exercises in your workout.\n"
+    MenuInput exer -> dbRemExerciseFromWorkout exer
+    MenuQuit -> return ()
 
 
+--weightRoutine :: App ()
+--weightRoutine = do
+--  x <- liftHistory "squats" 3
+--  return ()
+--  print $  firstOf (exercises . at "bdeads" . traverse . eName) x
+--  logLift $ Proficiency "squats" 185 5
+--  return ()
 
--}
-
-{-
-exerciseList :: Exercises
-exerciseList = M.mapWithKey (\k l -> Exercise k l) $ M.fromList $ [
-  ("squats"          ,"Squats"),
-  ("deadlifts"       ,"Stiff Legged Dead"),
-  ("inclinepress"    ,"Incline Press"),
-  ("chinups"         ,"Chinups"),
-  ("shrugs"          ,"Shrugs"),
-  ("shoulderpress"   ,"Shoulder Press"),
-  ("lateralraise"    ,"Lateral Raise"),
-  ("reardeltraise"   ,"Rear Delt Raise"),
-  ("curls"           ,"Curls"),
-  ("tricepsextension","Triceps Extension"),
-  ("calfraise"       ,"Calf Raise"),
-  ("crunches"        ,"Crunches")]
-
-
--}

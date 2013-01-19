@@ -1,4 +1,4 @@
-module PlateCalc(displayPlateCalc) where
+module Weight.PlateCalc(displayPlateCalc) where
 
 import Data.List (intersperse)
 
@@ -7,6 +7,7 @@ data Plates = Plates [Plate] deriving Show
 data Plate = P45 Int | P25 Int | P10 Int | P5 Int | P2p5 Int | TooLight deriving Show
 
 
+displayPlateCalc :: Int -> String
 displayPlateCalc = displayPlates . plateCalc
 
 displayPlates :: Plates -> String
@@ -53,5 +54,5 @@ plateCalc lbs | lbs < 45 = Plates [TooLight]
     roundToNearest :: Int -> Int -> Int
     roundToNearest num i | num <= 0 = error "invalid"
                          | otherwise = 
-      let rem = i `mod` num 
-      in if rem < 3 then i - rem else i + (num - rem)
+      let remainder = i `mod` num 
+      in if remainder < 3 then i - remainder else i + (num - remainder)
