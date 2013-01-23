@@ -1,0 +1,134 @@
+ingredients:
+  ground beef:
+    # amount normally eaten in sitting (will cause program to ask for weight in grams)
+    serving size: 300
+    protein: 84
+    fat: 36
+    cals: 690
+
+  chicken:
+    serving size: 200
+    cals: 340
+    protein: 64
+    fat: 9
+
+  spaghetti:
+    serving size:  240
+    cals: 857
+    protein: 30
+    fat: 4
+
+  macaroni:
+    serving size: 240
+    cals: 857
+    protein: 30
+    fat: 4
+
+  wide egg noodles:
+    serving size: 180
+    cals: 707
+    fat: 10
+    protein: 26
+
+  spaghetti sauce:
+    cals: 475
+    fat: 16
+    protein: 11
+
+  chow mein noodles:
+    cals: 660
+    protein: 15
+    fat: 25
+
+  cream of chicken soup:
+    cals: 300
+    fat: 20
+    protein: 5
+    
+  cheddar cheese soup:
+    cals: 250
+    fat: 13
+    protein: 5
+
+  canned tomatoes:
+    cals: 147
+    fat:  0
+    protein: 1
+
+  mixed vegetables:
+    cals: 60
+    fat: 0
+    protein: 3
+
+  soft tortilla:
+    # amount I typically eat in a sitting (will cause program to ask for amount)
+    serving number: 2
+    cals: 99
+    fat: 3
+    protein: 3
+
+  almond:
+    serving number: 5
+    cals: 37
+    fat: 3
+    protein: 1
+
+  oreo:
+    serving number: 3
+    cals: 160
+    fat: 7
+    protein: 1
+
+  oreo (double stuff):
+    serving number: 2
+    cals: 140
+    fat: 7
+    protein: 1
+
+  small chocolate frosty:
+    cals: 300
+    fat: 8
+    protein: 7
+
+foods:
+  spaghetti:
+    - ground beef
+    - spaghetti
+    - spaghetti sauce
+
+  cheese spaghetti:
+    - ground beef
+    - spaghetti
+    - cheddar cheese soup
+
+  chow mein casserole:
+    - ground beef
+    - chow mein noodles
+    - cream of chicken soup
+    - mixed vegetables
+
+  soft tacos:
+    - ground beef
+    - soft tortilla
+
+  goulash:
+    - ground beef
+    - macaroni
+    - vegetable juice
+    - canned tomatoes
+
+  chicken noodles:
+    - wide egg noodles
+    - chicken
+
+  almonds:
+    - almond
+
+  oreos:
+    - oreo
+
+  oreos (double stuff):
+    - oreo (double stuff)
+
+  small chocolate frosty:
+    - small chocolate frosty
