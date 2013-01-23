@@ -31,7 +31,8 @@ newtype App a = App (StateT AppState IO a)
   deriving (Monad, MonadState AppState, MonadIO, Functor)
 
 data AppState = AS {
-  _weightState :: WeightState
+  _weightState :: WeightState,
+  _today :: Day
 }
 
 makeLenses ''AppState
@@ -41,8 +42,9 @@ runWeightRoutine = runApp mainLoop
 
 runApp :: App a -> IO a
 runApp (App s) = do
+  today <- fmap (localDay . zonedTimeToLocalTime) getZonedTime
   ws <- loadWeightConfig
-  evalStateT s (AS ws)
+  evalStateT s (AS ws today)
 
 
 mainLoop :: App ()
@@ -78,7 +80,7 @@ mainLoop = do
 workoutMode :: App ()
 workoutMode = do
   workout <- currentWorkout
-  today <- liftIO $ fmap (localDay . zonedTimeToLocalTime) getZonedTime
+  today <- fmap (\x -> x ^. today) get
   mapM_ (doExercise today) workout
   liftIO $ printf "Workout complete.\n"
   where
