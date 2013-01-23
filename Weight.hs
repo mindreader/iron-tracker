@@ -100,7 +100,7 @@ workoutMode = do
 
     printHistory :: [(Day, Proficiency)] -> App ()
     printHistory history = do
-      mapM_ printHistory' history
+      mapM_ printHistory' (L.reverse history)
       where
         printHistory' (day, pro) = liftIO $ printf " %s : %s\n" (show day) (formatRepsWeight (pro ^. pReps) (pro ^. pWeight))
 
