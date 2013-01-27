@@ -31,25 +31,26 @@ main =  print $ blah [] testWorkout
 testWorkout :: Workout
 testWorkout = [squats, gmorning, shrugs, bench, bentrow, overhead, curls, triceps]
 
-class Cost a where
-  cost :: a -> Int
-
--- Relative difficulty in adding/removing any given plate.
-instance Cost Plate where
-  cost P45  = 22
-  cost P25  = 17
-  cost P10  = 13
-  cost P5   = 12
-  cost P2p5 = 10
+complexity :: Workout -> Integer
+complexity = product . L.map (fromIntegral . L.length)
 
 
+pcost :: Plate -> Int
+pcost P45  = 22
+pcost P25  = 17
+pcost P10  = 13
+pcost P5   = 12
+pcost P2p5 = 10
 
+
+{-
 desireable :: Lift -> Bool
 -- desireable (P45:P45:P45:P45:xs) = True  These are way out of my range, no point in checking
 -- desireable (P45:P45:P45:P45:P45:xs) = True
 -- desireable (_:_:P45:P45:_) = False
 -- desireable (_:_:_:P45:P45:_) = False
 desireable _ = True
+-}
 
 
 -- Prepend the current state of the bar to all possible workouts that spring from it.
@@ -62,7 +63,7 @@ optimalPlateOrder initialLift = minWorkout . (L.map (initialLift :)) . allPossib
 
 -- Every possible combination of plate orderings given an initial set of plates per exercise.
 allPossibleWorkouts :: Workout -> [Workout]
-allPossibleWorkouts = sequence . L.map (L.filter desireable) . L.map combinations
+allPossibleWorkouts = sequence . L.map combinations
   where
     combinations :: Ord a => [a] -> [[a]]
     combinations = L.nub . L.permutations
@@ -76,10 +77,10 @@ wCost w = case w of
   where
     lCost :: Lift -> Lift -> Int
     lCost [] [] = 0
-    lCost [] y = sum' (L.map cost y)
-    lCost x [] = sum' (L.map cost x)
+    lCost [] y = sum' (L.map pcost y)
+    lCost x [] = sum' (L.map pcost x)
     lCost x'@(x:xs) y'@(y:ys) =  if x == y
       then lCost xs ys
-      else sum' (L.map cost x') + sum' (L.map cost y')
+      else sum' (L.map pcost x') + sum' (L.map pcost y')
 
     sum' = L.foldl' (+) 0
