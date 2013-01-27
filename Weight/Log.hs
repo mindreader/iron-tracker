@@ -26,21 +26,21 @@ withDb st = do
   statedir <- liftIO $ stateDir
   liftIO $ bracket (open (statedir++"/weight.db")) close st
 
-logLift :: MonadIO m => Exercise -> Proficiency -> m ()
-logLift exer prof = withDb $ \conn -> do
+logLift :: MonadIO m => Exercise -> (Int, Proficiency) -> m ()
+logLift exer (attemptedreps, prof) = withDb $ \conn -> do
     execute conn
       "delete from weight_log where exercise_id = ? and whenit = date('now','localtime','-5 hour')"
       (Only $ exer ^. eExerciseId)
     execute conn
-      "insert into weight_log (exercise_id, reps, weight, whenit) values (?,?,?,date('now','localtime','-5 hour'))"
-      (exer ^. eExerciseId, prof ^. pReps, fromRational (prof ^. pWeight) :: Double)
+      "insert into weight_log (exercise_id, attempted_reps, reps, weight, whenit) values (?, ?,?,?,date('now','localtime','-5 hour'))"
+      (exer ^. eExerciseId, attemptedreps, prof ^. pReps, fromRational (prof ^. pWeight) :: Double)
 
-liftHistory :: MonadIO m => Exercise -> Int -> m [(Day, Proficiency)]
+liftHistory :: MonadIO m => Exercise -> Int -> m [(Day, (Int, Proficiency))]
 liftHistory exer n = withDb $ \conn -> do
     logs <- query conn
-      "select reps, weight, whenit from weight_log where exercise_id = ? and whenit <> date('now','localtime','-5 hour') order by whenit desc limit ?"
+      "select attempted_reps, reps, weight, whenit from weight_log where exercise_id = ? and whenit <> date('now','localtime','-5 hour') order by whenit desc limit ?"
       (exer ^. eExerciseId, n)
-    return $ fmap (\(r,w,d) -> (d,(Pro r (toRational (w::Double))))) logs
+    return $ fmap (\(ar,r,w,d) -> (d,(ar, Pro r (toRational (w::Double))))) logs
 
 
 dbFilterCurrentWorkout :: MonadIO m => [Exercise] -> m [Exercise]

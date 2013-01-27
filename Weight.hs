@@ -87,22 +87,22 @@ workoutMode = do
     doExercise :: Day ->  Exercise -> App ()
     doExercise today exer = do
       history <- liftHistory exer 4
-      let (TryThis tr tw) = suggestNewRepWeight today $ map (\(date,(Pro r w)) -> DidThis (fromIntegral r) w date) history
+      let (TryThis tr tw) = suggestNewRepWeight today $ map (\(date,(attemptedReps,Pro r w)) -> DidThis attemptedReps (fromIntegral r) w date) history
       liftIO $ printf "\n%s\n" (exer ^. eName)
       printHistory history
       liftIO $ printf "You must do %s.\n" (formatRepsWeight tr tw)
       change <- liftIO $ prompt "Any change? (y/n)"
       if (change == ("y"::String))
-        then inputProficiency exer >>= logLift exer
+        then inputProficiency exer >>= (\pro -> logLift exer (tr, pro))
         else case headMay history of
                Nothing -> return ()
                Just (_,prof) -> logLift exer prof
 
-    printHistory :: [(Day, Proficiency)] -> App ()
+    printHistory :: [(Day, (Int, Proficiency))] -> App ()
     printHistory history = do
       mapM_ printHistory' (L.reverse history)
       where
-        printHistory' (day, pro) = liftIO $ printf " %s : %s\n" (show day) (formatRepsWeight (pro ^. pReps) (pro ^. pWeight))
+        printHistory' (day, (_,pro)) = liftIO $ printf " %s : %s\n" (show day) (formatRepsWeight (pro ^. pReps) (pro ^. pWeight))
 
     formatRepsWeight :: Reps -> Weight -> String
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
@@ -132,7 +132,7 @@ printWorkout adjuster = do
       last <- liftHistory exer 1
       case headMay last of
         Nothing          -> return . Left $ exer
-        Just (day, prof) -> return . Right $ (day, adjuster prof, exer)
+        Just (day, (_, prof)) -> return . Right $ (day, adjuster prof, exer)
         
     formatLine namelen (Left exercise) = printf ("%" ++ show namelen ++ "s : (never done)") (exercise ^. eName)
     formatLine namelen (Right (date, Pro reps 0.0, exercise)) = printf ("%" ++ show namelen ++ "s : %d") (exercise ^. eName) reps
@@ -153,7 +153,7 @@ updateSingleExercise = do
   mexer <- liftIO $ inputMenu def "Pick Exercise To Update" exercises
   case mexer of
     MenuError -> liftIO $ printf "You need to input some exercises to your config file."
-    MenuInput exer -> inputProficiency exer >>= logLift exer
+    MenuInput exer -> inputProficiency exer >>= (\pro -> logLift exer (pro ^. pReps, pro))
     MenuQuit -> return ()
   return ()
 
