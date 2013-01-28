@@ -107,7 +107,7 @@ workoutMode = do
     formatRepsWeight :: Reps -> Weight -> String
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
     formatRepsWeight reps 0.0 = printf "%d at whatever you think you can do" reps
-    formatRepsWeight reps weight = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (displayPlateCalc $ round weight)
+    formatRepsWeight reps weight = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (displayPlateCalc $ weight)
 
 
 inputProficiency :: Exercise -> App Proficiency
@@ -136,7 +136,7 @@ printWorkout adjuster = do
         
     formatLine namelen (Left exercise) = printf ("%" ++ show namelen ++ "s : (never done)") (exercise ^. eName)
     formatLine namelen (Right (date, Pro reps 0.0, exercise)) = printf ("%" ++ show namelen ++ "s : %d") (exercise ^. eName) reps
-    formatLine namelen (Right (date, Pro reps weight, exercise)) = printf ("%" ++ show namelen ++ "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (displayPlateCalc $ round weight)
+    formatLine namelen (Right (date, Pro reps weight, exercise)) = printf ("%" ++ show namelen ++ "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (displayPlateCalc $ weight)
 
 rTrimZeros :: String -> String
 rTrimZeros = L.reverse . L.dropWhile (=='.') . L.dropWhile (== '0') . L.reverse

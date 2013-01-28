@@ -7,7 +7,7 @@ data Plates = Plates [Plate] deriving Show
 data Plate = P45 Int | P25 Int | P10 Int | P5 Int | P2p5 Int | TooLight deriving Show
 
 
-displayPlateCalc :: Int -> String
+displayPlateCalc :: Rational -> String
 displayPlateCalc = displayPlates . plateCalc
 
 displayPlates :: Plates -> String
@@ -27,18 +27,18 @@ displayPlates (Plates ps) = dPlates ps
 
 
 
-plateCalc :: Int -> Plates
+plateCalc :: Rational -> Plates
 plateCalc lbs | lbs < 45 = Plates [TooLight]
-              | lbs `mod` 5 /= 0 = plateCalc $ roundToNearest 5 lbs
               | otherwise = Plates $ minimize $ plateCalc' (lbs - 45)
 
   where
-    plateCalc' :: Int -> [Plate]
-    plateCalc' lbs | lbs >= 90 = P45  2:plateCalc' (lbs - 90)
-                   | lbs >= 50 = P25  2:plateCalc' (lbs - 50)
-                   | lbs >= 20 = P10  2:plateCalc' (lbs - 20)
-                   | lbs >= 10 = P5   2:plateCalc' (lbs - 10)
-                   | lbs >= 5  = P2p5 2:plateCalc' (lbs - 5)
+    plateCalc' :: Rational -> [Plate]
+    plateCalc' lbs | lbs >= 90  = P45  2:plateCalc' (lbs - 90)
+                   | lbs >= 50  = P25  2:plateCalc' (lbs - 50)
+                   | lbs >= 20  = P10  2:plateCalc' (lbs - 20)
+                   | lbs >= 10  = P5   2:plateCalc' (lbs - 10)
+                   | lbs >= 5   = P2p5 2:plateCalc' (lbs - 5)
+                   | lbs >= 2.5 = P2p5 2:plateCalc' (lbs - 5) -- round up
                    | otherwise = []
 
     minimize :: [Plate] -> [Plate]
@@ -50,9 +50,3 @@ plateCalc lbs | lbs < 45 = Plates [TooLight]
     minimize ((P5   w1):(P5   w2):ps) = P5   (w1+w2):minimize ps
     minimize ((P2p5 w1):(P2p5 w2):ps) = P2p5 (w1+w2):minimize ps
     minimize (p:ps) = p:minimize ps
-
-    roundToNearest :: Int -> Int -> Int
-    roundToNearest num i | num <= 0 = error "invalid"
-                         | otherwise = 
-      let remainder = i `mod` num 
-      in if remainder < 3 then i - remainder else i + (num - remainder)
