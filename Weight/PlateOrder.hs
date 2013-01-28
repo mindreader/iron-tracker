@@ -43,20 +43,18 @@ pcost P5   = 12
 pcost P2p5 = 10
 
 
-{-
 desireable :: Lift -> Bool
 -- desireable (P45:P45:P45:P45:xs) = True  These are way out of my range, no point in checking
 -- desireable (P45:P45:P45:P45:P45:xs) = True
 -- desireable (_:_:P45:P45:_) = False
 -- desireable (_:_:_:P45:P45:_) = False
 desireable _ = True
--}
 
 
 -- Prepend the current state of the bar to all possible workouts that spring from it.
 -- Limit to 4 workouts to ease computation.
 optimalPlateOrder :: Lift -> Workout -> Workout
-optimalPlateOrder initialLift = minWorkout . (L.map (initialLift :)) . allPossibleWorkouts . take 4
+optimalPlateOrder initialLift = minWorkout . (L.map (initialLift :)) . L.map (L.filter desireable) . allPossibleWorkouts . take 4
   where
     minWorkout :: [Workout] -> Workout
     minWorkout xs = tail . snd . L.minimumBy (compare `on` fst) . zip (L.map wCost xs) $ xs
