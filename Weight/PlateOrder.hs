@@ -12,23 +12,29 @@ data Plate = P45 | P25 | P10 | P5 | P2p5 deriving (Eq, Ord, Show)
 type Lift = [Plate]
 type Workout = [Lift]
 
-squats   = [P45,P45,P10,P2p5]
-gmorning = [P45,P25,P10]
+squats   = [P45,P45,P5]
+gmorning = [P45,P25,P10,P5]
 shrugs   = [P45,P25,P10,P5,P2p5]
-bench    = [P45,P10,P5,P2p5]
-bentrow  = [P45,P5]
-overhead = [P25,P5,P2p5]
+bench    = [P45,P10]
+bentrow  = [P45,P25,P5]
+overhead = [P10,P10,P2p5]
 curls    = [P10,P5]
-triceps  = [P10,P5,P2p5]
+triceps  = [P10,P2p5]
 
-main = print $ optimalPlateOrder $ testWorkout
+main =  print $ blah [] testWorkout
+    where
+      blah _ [] = []
+      blah last stuff = do
+        let this = head $ optimalPlateOrder last stuff
+        this:blah this (tail stuff)
 
 testWorkout :: Workout
-testWorkout = [squats, gmorning, shrugs, bench, bentrow, overhead,curls,triceps]
+testWorkout = [squats, gmorning, shrugs, bench, bentrow, overhead, curls, triceps]
 
 class Cost a where
   cost :: a -> Int
 
+-- Relative difficulty in adding/removing any given plate.
 instance Cost Plate where
   cost P45  = 22
   cost P25  = 17
@@ -41,36 +47,39 @@ instance Cost Plate where
 desireable :: Lift -> Bool
 -- desireable (P45:P45:P45:P45:xs) = True  These are way out of my range, no point in checking
 -- desireable (P45:P45:P45:P45:P45:xs) = True
-desireable (_:_:P45:P45:_) = False
-desireable (_:_:_:P45:P45:_) = False
+-- desireable (_:_:P45:P45:_) = False
+-- desireable (_:_:_:P45:P45:_) = False
 desireable _ = True
 
-optimalPlateOrder :: Workout -> Maybe Workout
-optimalPlateOrder = minWorkout . allPossibleWorkouts
-  where
-    minWorkout :: [Workout] -> Maybe Workout
-    minWorkout [] = Nothing
-    minWorkout xs = Just . snd . L.minimumBy (compare `on` fst) . zip (L.map wDistance xs) $ xs
 
+-- Prepend the current state of the bar to all possible workouts that spring from it.
+-- Limit to 4 workouts to ease computation.
+optimalPlateOrder :: Lift -> Workout -> Workout
+optimalPlateOrder initialLift = minWorkout . (L.map (initialLift :)) . allPossibleWorkouts . take 4
+  where
+    minWorkout :: [Workout] -> Workout
+    minWorkout xs = tail . snd . L.minimumBy (compare `on` fst) . zip (L.map wCost xs) $ xs
+
+-- Every possible combination of plate orderings given an initial set of plates per exercise.
 allPossibleWorkouts :: Workout -> [Workout]
 allPossibleWorkouts = sequence . L.map (L.filter desireable) . L.map combinations
   where
     combinations :: Ord a => [a] -> [[a]]
     combinations = L.nub . L.permutations
 
-
-wDistance :: Workout -> Int
-wDistance w = case w of
+-- Cost of switching plates in a workout from beginning to end.
+wCost :: Workout -> Int
+wCost w = case w of
   []       -> 0
-  (x:y:xs) -> lDistance x y + wDistance (y:xs)
+  (x:y:xs) -> lCost x y + wCost (y:xs)
   _        -> 0
   where
-    lDistance :: Lift -> Lift -> Int
-    lDistance [] [] = 0
-    lDistance [] y = sum' (L.map cost y)
-    lDistance x [] = sum' (L.map cost x)
-    lDistance x'@(x:xs) y'@(y:ys) =  if x == y
-      then lDistance xs ys
+    lCost :: Lift -> Lift -> Int
+    lCost [] [] = 0
+    lCost [] y = sum' (L.map cost y)
+    lCost x [] = sum' (L.map cost x)
+    lCost x'@(x:xs) y'@(y:ys) =  if x == y
+      then lCost xs ys
       else sum' (L.map cost x') + sum' (L.map cost y')
 
     sum' = L.foldl' (+) 0
