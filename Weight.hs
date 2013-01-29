@@ -20,7 +20,8 @@ import Weight.Formulas
 import Weight.Config
 import Weight.Types
 import Weight.Log
-import Weight.PlateCalc
+import Weight.PlateCalc as PC
+import Weight.PlateOrder as PO
 
 import Menu
 import IO
@@ -75,40 +76,60 @@ mainLoop = do
       (MWDisInclude,        "Remove exercise from workout")]
 
 
+-- On `Day` you were told to do `Reps` but you were able to do (Proficiency Reps Weight).
+type History = [(Day, (Reps, Proficiency))]
 
 
 workoutMode :: App ()
 workoutMode = do
   workout <- currentWorkout
   today <- fmap (\x -> x ^. today) get
-  mapM_ (doExercise today) workout
+  (exers, histories, plates, tryThis) <- fmap L.unzip4 $ mapM (fetchPlateConfig today) workout :: App ([Exercise], [History], [[PO.Plate]], [TryThis])
+  workoutMode' [] (L.zip3 exers histories tryThis) plates
   liftIO $ printf "Workout complete.\n"
   where
-    doExercise :: Day ->  Exercise -> App ()
-    doExercise today exer = do
-      history <- liftHistory exer 4
-      let (TryThis tr tw) = suggestNewRepWeight today $ map (\(date,(attemptedReps,Pro r w)) -> DidThis attemptedReps (fromIntegral r) w date) history
+      
+    fetchPlateConfig :: Day -> Exercise -> App (Exercise, History, [PO.Plate], TryThis)
+    fetchPlateConfig today exer = do
+      history <- liftHistory exer 5
+      let tryThis@(TryThis _ tw) = suggestNewRepWeight today $ map (\(date,(attemptedReps,Pro r w)) -> DidThis attemptedReps r w date) history
+      return $ (exer, history, case plateCalc tw of Plates ps -> plateOrder2Calc ps, tryThis)
+
+    -- TODO move to general purpose plate library for cleaner interface.
+    plateOrder2Calc :: [PC.Plate] -> [PO.Plate]
+    plateOrder2Calc (PC.P45  n :ps) = replicate (n `div` 2) PO.P45  ++ plateOrder2Calc ps
+    plateOrder2Calc (PC.P25  n :ps) = replicate (n `div` 2) PO.P25  ++ plateOrder2Calc ps
+    plateOrder2Calc (PC.P10  n :ps) = replicate (n `div` 2) PO.P10  ++ plateOrder2Calc ps
+    plateOrder2Calc (PC.P5   n :ps) = replicate (n `div` 2) PO.P5   ++ plateOrder2Calc ps
+    plateOrder2Calc (PC.P2p5 n :ps) = replicate (n `div` 2) PO.P2p5 ++ plateOrder2Calc ps
+    plateOrder2Calc _ = []
+
+    workoutMode' :: [PO.Plate] -> [(Exercise, History, TryThis)] -> [[PO.Plate]] -> App ()
+    workoutMode' _ [] _ = return ()
+    workoutMode' lastPlateOrder ((exer,history,(TryThis tr tw)):xs) plates@(_:ps) = do
       liftIO $ printf "\n%s\n" (exer ^. eName)
       printHistory history
-      liftIO $ printf "You must do %s.\n" (formatRepsWeight tr tw)
+      let thisPlateOrder = head . optimalPlateOrder lastPlateOrder $ plates
+      liftIO $ printf "You must do %s.\n" (formatRepsWeight tr tw (Just $ PO.displayPlates thisPlateOrder))
       change <- liftIO $ prompt "Any change? (y/n)"
       if (change == ("y"::String))
         then inputProficiency exer >>= (\pro -> logLift exer (tr, pro))
         else case headMay history of
                Nothing -> return ()
                Just (_,prof) -> logLift exer prof
+      workoutMode' thisPlateOrder xs ps
 
-    printHistory :: [(Day, (Int, Proficiency))] -> App ()
+    printHistory :: History -> App ()
     printHistory history = do
       mapM_ printHistory' (L.reverse history)
       where
-        printHistory' (day, (_,pro)) = liftIO $ printf " %s : %s\n" (show day) (formatRepsWeight (pro ^. pReps) (pro ^. pWeight))
+        printHistory' (day, (_,pro)) = liftIO $ printf " %s : %s\n" (show day) (formatRepsWeight (pro ^. pReps) (pro ^. pWeight) Nothing)
 
-    formatRepsWeight :: Reps -> Weight -> String
+    formatRepsWeight :: Reps -> Weight -> (Maybe String) -> String
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
-    formatRepsWeight reps 0.0 = printf "%d at whatever you think you can do" reps
-    formatRepsWeight reps weight = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (displayPlateCalc $ weight)
-
+    formatRepsWeight reps 0.0 _ = printf "%d" reps
+    formatRepsWeight reps weight (Just plates) = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) plates
+    formatRepsWeight reps weight Nothing = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (displayPlateCalc weight)
 
 inputProficiency :: Exercise -> App Proficiency
 inputProficiency exer = do
