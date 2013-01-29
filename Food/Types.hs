@@ -10,6 +10,10 @@ import Data.Default
 
 import Menu
 
+type Calories = Int
+type Fat = Int
+type Protein = Int
+
 data Ingredient = Ing {
   _iName :: T.Text,
   _iServingSize :: Maybe Int, -- serving size in grams

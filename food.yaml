@@ -90,6 +90,12 @@ ingredients:
     fat: 8
     protein: 7
 
+  vegetable juice: #TODO look this one up
+    serving size: 40
+    cals: 50
+    fat: 1
+    protein: 1
+
 foods:
   spaghetti:
     - ground beef
