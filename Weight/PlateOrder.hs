@@ -1,5 +1,9 @@
--- module Weight.PlateOrder where
- module Main where
+{-# LANGUAGE FlexibleInstances #-}
+
+module Weight.PlateOrder (
+Plate(..),Lift,Workout,optimalPlateOrder, displayPlates
+) where
+-- module Main where
 
 import qualified Data.List as L
 import Control.Monad
@@ -12,21 +16,38 @@ data Plate = P45 | P25 | P10 | P5 | P2p5 deriving (Eq, Ord, Show)
 type Lift = [Plate]
 type Workout = [Lift]
 
+
 squats   = [P45,P45,P5]
 gmorning = [P45,P25,P10,P5]
-shrugs   = [P45,P25,P10,P5,P2p5]
-bench    = [P45,P10]
-bentrow  = [P45,P25,P5]
+shrugs   = [P45,P25,P10]
+bench    = []
+bentrow  = [P45,P10,P5]
 overhead = [P10,P10,P2p5]
 curls    = [P10,P5]
 triceps  = [P10,P2p5]
 
-main =  print $ blah [] testWorkout
+
+main =  blah [] testWorkout
     where
       blah _ [] = []
       blah last stuff = do
         let this = head $ optimalPlateOrder last stuff
         this:blah this (tail stuff)
+
+displayPlates :: Lift -> String
+displayPlates [] = "just the bar"
+displayPlates ps = dPlates ps
+  where
+    dPlates :: [Plate] -> String
+    dPlates = concat . L.intersperse "," . L.map dPlate
+    dPlate :: Plate -> String
+    dPlate P45  = "45"
+    dPlate P25  = "25"
+    dPlate P10  = "10"
+    dPlate P5   = "5"
+    dPlate P2p5 = "2.5"
+
+
 
 testWorkout :: Workout
 testWorkout = [squats, gmorning, shrugs, bench, bentrow, overhead, curls, triceps]
@@ -53,6 +74,8 @@ desireable _ = True
 
 -- Prepend the current state of the bar to all possible workouts that spring from it.
 -- Limit to 4 workouts to ease computation.
+-- WARNING - if there is a bodyweight exercise in middle of workout, that will jack up this algorithm
+--   (it will assume you intend to take all weight off bar for that exercise).
 optimalPlateOrder :: Lift -> Workout -> Workout
 optimalPlateOrder initialLift = minWorkout . (L.map (initialLift :)) . L.map (L.filter desireable) . allPossibleWorkouts . take 4
   where
