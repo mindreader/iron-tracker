@@ -1,14 +1,17 @@
-module Weight.PlateCalc(displayPlateCalc) where
+module Weight.PlateCalc(displayPlateCalc,Plate(..),plateCalc, Plates(Plates)) where
 
 import Data.List (intersperse)
 
-data Plates = Plates [Plate] deriving Show
+data Plates = Plates [Plate]
+
+instance Show Plates where
+  show = displayPlates
 
 data Plate = P45 Int | P25 Int | P10 Int | P5 Int | P2p5 Int | TooLight deriving Show
 
-
 displayPlateCalc :: Rational -> String
 displayPlateCalc = displayPlates . plateCalc
+
 
 displayPlates :: Plates -> String
 displayPlates (Plates []) = "just the bar"
