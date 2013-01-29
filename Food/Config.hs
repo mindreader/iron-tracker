@@ -1,14 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Weight.Config(
-  loadWeightConfig
+  loadFoodConfig
 ) where
 
---import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
---import qualified Data.Map as M
+import qualified Data.Map as M
 
--- import Control.Monad
-
+import Control.Monad (mzero)
 import Data.Yaml
 
 import Data.Default
@@ -17,29 +15,44 @@ import Food.Types
 
 instance FromJSON FoodState where
   parseJSON (Object v) = do
-    ingredients <- v .: "ingredients"
-    foods <- v .: "foods" >>= HM.traverseWithKey (parseFoodWithKey ingredients) :: Parser (HM.HashMap T.Text Food)
-    -- TODO future verion of containers has M.traverseWithKey which would greatly simplify this function.
---    hashmap <- v .: "exercises" >>= HM.traverseWithKey parseExerciseWithKey :: Parser (HM.HashMap T.Text Exercise)
---    return $ WS $ M.fromList . HM.toList $ hashmap
+    ingredients <- fmap (M.mapWithKey (\k v -> v { _iName = k })) $ v .: "ingredients" :: Parser (M.Map T.Text Ingredient)
+    foods <- v .: "foods" :: Parser (M.Map T.Text [T.Text])
+    return . FS $ M.mapWithKey (namesToIngredients ingredients) foods
   parseJSON _ = mzero
 
-instance FromJSON Food where
-  parseJSON (Object v) = undefined
-  parseJSON _ = mzero
+namesToIngredients :: (M.Map T.Text Ingredient) -> T.Text -> [T.Text] -> Food
+namesToIngredients ingredients foodName = Food foodName . loop
+  where
+    loop [] = []
+    loop (ingName:is) = case M.lookup ingName ingredients of
+      Just ing -> ing : loop is
+      Nothing -> error $ "Ingredient " ++ T.unpack ingName ++ " does not exist in your food config file."
 
 instance FromJSON Ingredient where
-  parseJSON (Object v) = undefined
+  parseJSON (Object v) = do
+    ssize    <- v .:? "serving size" :: Parser (Maybe Int)
+    snumber  <- v .:? "serving number" :: Parser (Maybe Int)
+    protein  <- v .: "protein" :: Parser Int
+    calories <- v .: "cals" :: Parser Int
+    fat      <- v .: "fat" :: Parser Int
+    return $ Ing undefined ssize snumber calories protein fat
   parseJSON _ = mzero
   
-
+{-
 parseFoodWithKey :: [Ingredient] -> T.Text -> Value -> Parser Food
 parseFoodWithKey name (Array v) = do
   let ingredients = map fromJSON $ V.toList v
   return $ Food name ingredients
 parseExerciseWithKey _ _ = mzero
-
+-}
+{-
 loadFoodConfig :: IO FoodState
 loadWeightConfig = do
   statedir <- stateDir
   fmap (maybe def id) $ decodeFile (statedir ++ "/weight.yaml")
+-}
+
+loadFoodConfig :: IO FoodState
+loadFoodConfig = do
+  fmap (maybe def id) $ decodeFile ("food.yaml")
+

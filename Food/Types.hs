@@ -6,6 +6,8 @@ import Control.Lens
 import qualified Data.Text as T
 import qualified Data.Map as M
 
+import Data.Default
+
 import Menu
 
 data Ingredient = Ing {
@@ -20,9 +22,12 @@ data Food = Food {
   _fIngredients :: [Ingredient]
 } deriving Show
 
-data FoodState = WS {
+data FoodState = FS {
   _foods :: M.Map T.Text Food
 } deriving (Show)
+
+instance Default FoodState where
+  def = FS M.empty
 
 
 makeLenses ''Ingredient
