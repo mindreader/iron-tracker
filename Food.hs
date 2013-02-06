@@ -1,118 +1,71 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell, OverloadedStrings, GeneralizedNewtypeDeriving #-}
 module Food where
 
+import Control.Lens
 
-import Control.Monad.IO.Class
-import Control.Monad.Trans (lift)
+import Control.Monad.State
+import Control.Monad.Trans (lift, liftIO)
 import Control.Monad (when)
+
 import qualified Data.Text as T hiding (find)
-import Menu
-import Data.Default (def)
+
 import Data.List (find)
+import Data.Default (def)
 
 import IO
-import FoodState
+import Menu
+
+import Food.Types
+import Food.Config
 
 import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
 
 
-data FoodMenuCommand = MFSearch | MFAddFood | MFRemFood | MFAddRecipe deriving (Eq, Ord)
+data FoodMenuCommand = MFInfo | MFLog | MFEat deriving (Eq, Ord)
 
-runFoodRoutine :: MonadException m => m ()
-runFoodRoutine = runInputT defaultSettings (runFoodStateT mainLoop)
+newtype App a = App (StateT AppState IO a)
+  deriving (Monad, MonadState AppState, MonadIO, Functor)
+
+data AppState = AS {
+  _foodState:: FoodState
+}
+
+makeLenses ''AppState
+
+runFoodRoutine :: IO ()
+runFoodRoutine = runApp mainLoop
+
+runApp :: App a -> IO a
+runApp (App s) = do
+  fs <- loadFoodConfig
+  evalStateT s (AS fs )
 
 
-mainLoop :: (MonadException m) => FoodStateT (InputT m) ()
+
+
+mainLoop :: App ()
 mainLoop = do
-  command <- liftIO $ inputMenu (def { quitOption = True }) "Food Menu"
-    [(MFSearch,    "Food Information"::T.Text),
-     (MFAddFood,   "Add Ingredient"),
-     (MFRemFood,   "Delete Ingredient"),
-     (MFAddRecipe, "Create Recipe")]
-
-  case command :: MenuResult FoodMenuCommand of
+  command <- inputMenu (def { quitOption = True }) "Food Menu" menuCrud
+  case command of
     MenuError -> mainLoop
     MenuQuit -> return () 
     MenuInput command' -> do
       case command' of
-        MFSearch    -> foodSearch
-        MFAddFood   -> createFood
-        MFRemFood   -> deleteFood
-        MFAddRecipe -> createRecipe
-
-
-createFood :: MonadException m => FoodStateT (InputT m) ()
-createFood = do
-  name          <- lift $ prompt "Name:"
-  protein       <- lift $ prompt "Protein:"
-  fat           <- lift $ prompt "Fat:"
-  carbs         <- lift $ prompt "Carbs:"
-  askWeight     <- lift $ yesnoPrompt "Weight of food varies meal to meal? (no):" DefNo
-  weight <- if (askWeight)
-              then fmap Just . lift $ prompt "Serving size (weight):"
-              else return Nothing
-  askAmount     <- lift $ yesnoPrompt "Number of food items varies per meal? (no):" DefNo
-
-  addFood $ Food name protein fat carbs weight askAmount
-  
-
-deleteFood :: MonadException m => FoodStateT (InputT m) ()
-deleteFood = do
-  foods <- fmap (map name) foodList >>= lift . searchPrompt
-  mfood <- liftIO $ inputMenu (def { quitOption = True }) "Pick A Food" $ take 25 $ foods
-  case mfood of
-    MenuInput food -> remFood food
-    otherwise -> return ()
-
-createRecipe :: MonadException m => FoodStateT (InputT m) ()
-createRecipe = do
-    name <- lift $ prompt "Name of recipe:"
-    createRecipe' >>= addFood . Recipe name
+        MFInfo -> foodInfo
+        MFLog  -> foodHistory
+        MFEat  -> foodEat
   where
-    createRecipe' = do
-      mfood <- addIngredient
-      case mfood of
-        Nothing -> return []
-        Just food -> do
-          done <- lift $ yesnoPrompt "Done? (no):" DefNo
-          if (done)
-            then return $ food:[]
-            else do
-              rest <- createRecipe'
-              return $ food:rest
+    menuCrud = [
+      (MFInfo,  "Food Information"::T.Text),
+      (MFLog,   "Recent Food History"),
+      (MFEat,   "Eat Something")]
 
-    addIngredient = do
-      liftIO $ printf "Add an ingredient\n"
-      foods <- foodList
-      foodNamesFiltered <- lift . searchPrompt $ map name foods  -- TODO make a SearchPromptable class similar to Menuable
-      let foodsFiltered = filter (\food -> name food `elem` foodNamesFiltered) foods
-      mfood <- liftIO $ inputMenu (def { quitOption = True }) "Pick A Food" $ take 25 $ (map (\food -> (food, name food))) $ foodsFiltered
-      return $ case mfood of
-        MenuInput food -> Just food
-        otherwise -> Nothing
- 
-  
 
-foodSearch :: MonadException m => FoodStateT (InputT m) ()
-foodSearch = do
-  foods <- foodList
-  foodNamesFiltered <- lift . searchPrompt $ map name foods  -- TODO make a SearchPromptable class similar to Menuable
-  liftIO $ print foodNamesFiltered
-  let foodsFiltered = filter (\food -> name food `elem` foodNamesFiltered) foods
+-- Get info about calorie counts in a food
+foodInfo = undefined
 
-  mfood <- liftIO $ inputMenu (def { quitOption = True }) "Pick A Food" $ take 25 $ map (\food -> (food, name food)) foodsFiltered
-  case mfood of
-    MenuInput food -> do
-      multiplier <- case (weightBased food) of
-                      Nothing     -> return 1              -- TODO Get rid of this ugly hack as soon as possible.
-                      Just weight -> fmap (\x -> case weight of 0 -> 1; weight' -> x / (fromIntegral weight') :: Float) $ lift $ prompt "How many grams of food?"
-      liftIO $ printf "Name:%s\n  Calories:%.1f\n  Protein:%.1f\n  Fat:%.1f\n  Carbohydrates:%.1f\n"
-          (name food)
-          (fromIntegral (calories food) * multiplier)
-          (fromIntegral (protein food)  * multiplier)
-          (fromIntegral (fat food)      * multiplier)
-          (fromIntegral (carbs food)    * multiplier)
-    MenuError -> liftIO $ print "menuError"
-    otherwise -> return ()
+-- Log that you ate something.
+foodEat = undefined
 
-  where
+-- Check recent food history to see what you've eaten.
+foodHistory = undefined

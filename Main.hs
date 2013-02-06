@@ -37,4 +37,4 @@ mainLoop = do
     MenuInput command' -> do
       case command' of
         MMWeights -> runWeightRoutine
-        MMFood    -> return () -- runFoodRoutine
+        MMFood    -> runFoodRoutine
