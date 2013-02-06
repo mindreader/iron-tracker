@@ -1,7 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Weight.Config(
+module Food.Config(
   loadFoodConfig
 ) where
+
+import Control.Applicative
+import Control.Monad.Trans.Maybe
+
+import Data.Aeson (withObject)
 
 import qualified Data.Text as T
 import qualified Data.Map as M
@@ -17,7 +22,10 @@ instance FromJSON FoodState where
   parseJSON (Object v) = do
     ingredients <- fmap (M.mapWithKey (\k v -> v { _iName = k })) $ v .: "ingredients" :: Parser (M.Map T.Text Ingredient)
     foods <- v .: "foods" :: Parser (M.Map T.Text [T.Text])
-    return . FS $ M.mapWithKey (namesToIngredients ingredients) foods
+    (cals, prot, fat, carbs) <- v .: "daily requirements" >>= withObject "daily requirements object" (\v ->
+      (,,,) <$> v .:? "calories" <*> v .:? "protein" <*> v .:? "fat" <*> v .:? "carbs")
+
+    return $ FS (M.mapWithKey (namesToIngredients ingredients) foods) (Req cals prot fat carbs)
   parseJSON _ = mzero
 
 namesToIngredients :: (M.Map T.Text Ingredient) -> T.Text -> [T.Text] -> Food

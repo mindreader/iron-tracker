@@ -5,7 +5,7 @@ module Main where
 import Util
 import Menu
 import Weight (runWeightRoutine)
--- import Food (runFoodRoutine)
+import Food (runFoodRoutine)
 
 
 import qualified Data.Text as T

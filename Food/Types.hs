@@ -13,6 +13,7 @@ import Menu
 type Calories = Int
 type Fat = Int
 type Protein = Int
+type Carbs = Int
 
 data Ingredient = Ing {
   _iName :: T.Text,
@@ -27,11 +28,19 @@ data Food = Food {
 } deriving Show
 
 data FoodState = FS {
-  _foods :: M.Map T.Text Food
+  _foods :: M.Map T.Text Food,
+  _requirements :: Requirements
+} deriving (Show)
+
+data Requirements = Req {
+  _rCalories :: Maybe Calories,
+  _rProtein  :: Maybe Protein,
+  _rFat      :: Maybe Fat,
+  _rCarbs    :: Maybe Carbs
 } deriving (Show)
 
 instance Default FoodState where
-  def = FS M.empty
+  def = FS M.empty (Req Nothing Nothing Nothing Nothing)
 
 
 makeLenses ''Ingredient

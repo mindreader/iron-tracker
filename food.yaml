@@ -1,3 +1,7 @@
+daily requirements:
+  calories: 3000
+  protein:  150
+
 ingredients:
   ground beef:
     # amount normally eaten in sitting (will cause program to ask for weight in grams)
