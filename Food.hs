@@ -10,7 +10,10 @@ import Control.Monad (when)
 import qualified Data.Text as T hiding (find)
 
 import Data.List (find)
+import qualified Data.Map as M
 import Data.Default (def)
+
+import Data.Maybe (listToMaybe)
 
 import IO
 import Menu
@@ -62,7 +65,18 @@ mainLoop = do
 
 
 -- Get info about calorie counts in a food
-foodInfo = undefined
+foodInfo :: App ()
+foodInfo = do
+  foods <- fmap (\x -> x ^. foodState ^. foods) get
+  food <- liftIO $ searchPrompt "Food Search:" $ (map (\x -> x ^. fName) . M.elems) foods
+  case food of
+    Just food' -> liftIO $ showFood food'
+    Nothing -> return ()
+
+showFood :: Food -> IO ()
+showFood (Food name ingredients) = do
+  printf "%s:\n" name
+  
 
 -- Log that you ate something.
 foodEat = undefined

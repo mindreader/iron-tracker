@@ -7,7 +7,7 @@ module Text.Printf.Mauke
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import Safe (readMay)
+import Safe (readMay, headMay)
 import Data.List as L (transpose)
 
 import System.IO (hFlush, stdout)
@@ -87,12 +87,12 @@ printTable tdata = do
 pad :: Int -> String -> String
 pad i str = str ++ replicate (i - length str) ' '
 
-searchPrompt :: MonadIO m => [T.Text] -> m [T.Text]
-searchPrompt textPossibles = do
+searchPrompt :: MonadIO m => String -> [T.Text] -> m (Maybe T.Text)
+searchPrompt promptLabel textPossibles = do
   let -- The \t prevents it from defaulting to space, which causes it to fail on any strings with spaces in them.
       completefunc = completeWord Nothing "\t" $ return . testWords
-  searchTerm <- liftIO $ runInputT (setComplete completefunc defaultSettings) $ Haskeline.getInputLine "Search:"
-  return $ take 25 $ case searchTerm of
+  searchTerm <- liftIO $ runInputT (setComplete completefunc defaultSettings) $ Haskeline.getInputLine promptLabel 
+  return $ headMay $ take 25 $ case searchTerm of
     Nothing -> textPossibles
     Just searchTerm' -> map T.pack $ filter (=~ searchTerm') possibles
   where
