@@ -9,6 +9,7 @@ This application currently fulfills:
 * Has a plate calculator so I don't have to do math.
 * Since it has the order of lifts and knows which weight you'll do, it optimizes the plate order a bit to lower switching.
   - Too many plate in the workout can grind this algorithm to a halt because it is exponential, but it hasn't been too much of a problem in practice so far.
+  - Note to self: would be nice if I formulate the algorithm to predict this condition and try a less optimal approach.
 * Now it has a simple food log.  Draws recipes and ingredients from a yaml file.  Allows for common things that I need.
 * Has a really convoluted workout plan that works only for me and probably no one else.
 
