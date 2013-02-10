@@ -13,5 +13,6 @@ This application currently fulfills:
 * Now it has a simple food log.  Draws recipes and ingredients from a yaml file.  Allows for common things that I need.
 * Has a really convoluted workout plan that works only for me and probably no one else.
 * All workouts and food logs are store in sqlite3 databases in $HOME/.iron-tracker.  This is also where it gets the yaml files.
+  - Note to self: The program should probably create these sqlite3 dbs when it does not find them.
 
 The workout is very very loosely based on HST (google it).  Any serious lifter would probably injure himself laughing, but for me it works shockingly well so far when I can motivate myself to lift.  I will probably change it as my needs evolve.
