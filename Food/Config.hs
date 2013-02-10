@@ -4,6 +4,7 @@ module Food.Config(
 ) where
 
 import Control.Applicative
+import Control.Monad.Trans
 import Control.Monad.Trans.Maybe
 
 import Data.Aeson (withObject)
@@ -18,6 +19,8 @@ import Data.Default
 
 import Food.Types
 import Food.Formulas
+
+import Util
 
 instance FromJSON FoodState where
   parseJSON (Object v) = do
@@ -47,21 +50,8 @@ instance FromJSON Ingredient where
     return $ Ing undefined ssize snumber calories protein fat (calcCarbs calories protein fat)
   parseJSON _ = mzero
   
-{-
-parseFoodWithKey :: [Ingredient] -> T.Text -> Value -> Parser Food
-parseFoodWithKey name (Array v) = do
-  let ingredients = map fromJSON $ V.toList v
-  return $ Food name ingredients
-parseExerciseWithKey _ _ = mzero
--}
-{-
-loadFoodConfig :: IO FoodState
-loadWeightConfig = do
-  statedir <- stateDir
-  fmap (maybe def id) $ decodeFile (statedir ++ "/weight.yaml")
--}
-
 loadFoodConfig :: IO FoodState
 loadFoodConfig = do
-  fmap (maybe def id) $ decodeFile ("food.yaml")
+  statedir <- liftIO stateDir
+  fmap (maybe def id) $ decodeFile (statedir ++ "/food.yaml")
 
