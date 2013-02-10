@@ -1,15 +1,15 @@
 I have a strong urge to do fitness, but a frustratingly low urge to do the book keeping I need to stay on track.
 
 This application currently fulfills:
-* A long list of exercises of varying types can be input into the program.
+* A long list of exercises of varying types can be input into the program.  These are drawn from a yaml file.
 * A subset of those exercises can be declared as part of your current workout.
-* Saves your proficiency in each exercise in the form of "I was able to do 5 reps at 100 lbs/kg"
-* Allows you to display your workout with a different rep target.  Uses epley formula to convert above statement to new reps.
+* Saves your proficiency in each exercise in the form of "I was able to do 5 reps at 100 kg"
+* Allows you to display your workout with a different rep target.  Uses epley formula to convert your lift statement to a new rep count
 * Workout mode where you tick off the exercises as you do them, and update your proficiency for each as you go.
+* Has a plate calculator so I don't have to do math.
+* Since it has the order of lifts and knows which weight you'll do, it optimizes the plate order a bit to lower switching.
+  - Too many plate in the workout can grind this algorithm to a halt because it is exponential, but it hasn't been too much of a problem in practice so far.
+* Now it has a simple food log.  Draws recipes and ingredients from a yaml file.  Allows for common things that I need.
+* Has a really convoluted workout plan that works only for me and probably no one else.
 
-This application is planned to fulfill:
-* I'd like to be able to sort the exercises somehow, perhaps by weight?  That's generally the order I do them in.
-* I also want to get a log stored in a database sqlite.
-* The ability to keep a recipe store that primarily tells you calorie and protein (in grams) of any food in its database at a glance.
-* The ability to slightly modify a recipe you are inputting so like if you used less meat, or more noodles, it will adjust.
-* As with exercises, I want to be able to store a daily food log so that I can get an idea of what I'm eating each day.
+The workout is very very loosely based on HST (google it).  Any serious lifter would probably injure himself laughing, but for me it works shockingly well so far when I can motivate myself to lift.  I will probably change it as my needs evolve.
