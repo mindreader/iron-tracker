@@ -30,7 +30,7 @@ withDb st = do
 logNutrition :: MonadIO m => T.Text -> Int -> Float -> Nutrition -> m ()
 logNutrition name howmany howmuch (Nut (calories, protein, fat, carbs)) = withDb $ \conn -> do
     execute conn
-      "insert into food_log (food, howmany, howmuch, calories, protein, fat, carbs, whenit) values (?,?,?,?,?,date('now','localtime','-5 hour'))"
+      "insert into food_log (food, howmany, howmuch, calories, protein, fat, carbs, whenit) values (?,?,?,?,?,?,?,date('now','localtime','-5 hour'))"
       (name, howmany, howmuch, calories, protein, fat, carbs)
 
 foodLog :: MonadIO m => Int -> m [(T.Text, Nutrition, Day)]

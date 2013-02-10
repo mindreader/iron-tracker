@@ -13,7 +13,8 @@ import Control.Monad (when)
 import qualified Data.Text as T hiding (find)
 import qualified Data.Text.IO as TIO (putStrLn)
 
-import Data.List (find)
+import Data.List (find, sortBy)
+import Data.Function (on)
 import qualified Data.Map as M
 import Data.Default (def)
 import Data.Monoid
@@ -34,7 +35,7 @@ import Food.Log
 
 
 
-data FoodMenuCommand = MFInfo | MFLog | MFEat | MFToday deriving (Eq, Ord)
+data FoodMenuCommand = MFToday | MFEat | MFInfo | MFLog  deriving (Eq, Ord)
 
 newtype App a = App (StateT AppState IO a)
   deriving (Monad, MonadState AppState, MonadIO, Functor, Applicative)
@@ -68,6 +69,7 @@ mainLoop = do
         MFLog    -> undefined -- foodHistory
         MFEat    -> foodEat
         MFToday  -> foodToday
+      mainLoop
   where
     menuCrud = [
       (MFToday, "Today's Statistics"),
@@ -80,7 +82,7 @@ mainLoop = do
 foodInfo :: App (Maybe (T.Text, Int, Float, Nutrition))
 foodInfo = do
   foods <- fmap (\x -> x ^. foodState ^. foods) get
-  mfood <- liftIO $ searchPrompt "Food Search:" $ (map (\x -> x ^. fName) . M.elems) foods
+  mfood <- liftIO $ searchPrompt "Food Search:" $ (sortBy (compare `on` T.length) . map (\x -> x ^. fName) . M.elems) foods
   case mfood of
     Just foodName -> case M.lookup foodName foods of
       Just food@(Food name ingredients) -> do
@@ -128,7 +130,7 @@ foodEat = do
 foodToday :: App()
 foodToday = do
   hist <- foodLogToday :: App [(T.Text, Nutrition, Int, Float)]
-  let nuts      = map (\(_,nut,_,_) -> nut) hist
+  let nuts      = map (\(_,nut,howmany,howmuch) -> scaleBy howmuch . scaleBy (fromIntegral howmany) $ nut) hist
       (Nut (cals,prot,fat,carbs)) = foldr mappend mempty nuts
   liftIO $ do
     printf "Eaten today:\n"
@@ -143,7 +145,7 @@ foodToday = do
 
   where
     showRow :: (T.Text, Nutrition, Int, Float) -> IO ()
-    showRow (name,_,howmany,howmuch) | howmany == 0   = printf " %s" name
-    showRow (name,_,howmany,howmuch) | howmuch == 1.0 = printf " %s" name
-    showRow (name,_,howmany,howmuch) | howmany /= 0   = printf " %s (%d)" name howmany
-    showRow (name,_,howmany,howmuch) | howmuch /= 1.0 = printf " %s (%d)" name (floor $ howmuch * 100 :: Int)
+    showRow (name,_,howmany,howmuch) | howmany == 0   = printf " %s\n" name
+    showRow (name,_,howmany,howmuch) | howmuch == 1.0 = printf " %s\n" name
+    showRow (name,_,howmany,howmuch) | howmany /= 1   = printf " %s (%d)\n" name howmany
+    showRow (name,_,howmany,howmuch) | howmuch /= 1.0 = printf " %s (%d%%)\n" name (floor $ howmuch * 100 :: Int)
