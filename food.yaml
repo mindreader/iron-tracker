@@ -83,7 +83,7 @@ ingredients:
     fat: 7
     protein: 1
 
-  oreo (double stuff):
+  oreo double stuff:
     serving number: 2
     cals: 140
     fat: 7
@@ -99,6 +99,16 @@ ingredients:
     cals: 50
     fat: 1
     protein: 1
+
+  soda bottle:
+    cals: 250
+    fat: 0
+    protein: 0
+
+  soda can:
+    cals: 150
+    fat: 0
+    protein: 0
 
 foods:
   spaghetti:
@@ -137,8 +147,8 @@ foods:
   oreos:
     - oreo
 
-  oreos (double stuff):
-    - oreo (double stuff)
+  oreos double stuff:
+    - oreo double stuff
 
   small chocolate frosty:
     - small chocolate frosty
