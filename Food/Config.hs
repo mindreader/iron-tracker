@@ -17,6 +17,7 @@ import Data.Yaml
 import Data.Default
 
 import Food.Types
+import Food.Formulas
 
 instance FromJSON FoodState where
   parseJSON (Object v) = do
@@ -43,7 +44,7 @@ instance FromJSON Ingredient where
     protein  <- v .: "protein" :: Parser Int
     calories <- v .: "cals" :: Parser Int
     fat      <- v .: "fat" :: Parser Int
-    return $ Ing undefined ssize snumber calories protein fat
+    return $ Ing undefined ssize snumber calories protein fat (calcCarbs calories protein fat)
   parseJSON _ = mzero
   
 {-

@@ -1,10 +1,12 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, BangPatterns #-}
 
 module Food.Types where
 
 import Control.Lens
 import qualified Data.Text as T
 import qualified Data.Map as M
+
+import Data.Monoid
 
 import Data.Default
 
@@ -15,11 +17,17 @@ type Fat = Int
 type Protein = Int
 type Carbs = Int
 
+newtype Nutrition = Nut (Calories, Protein, Fat, Carbs) deriving Show
+
+instance Monoid Nutrition where
+  mempty = Nut (0,0,0,0)
+  mappend (Nut (!c1, !p1, !f1, !ca1)) (Nut (c2, p2, f2, ca2)) = Nut (c1 + c2, p1 + p2, f1 +f2, ca1 + ca2)
+
 data Ingredient = Ing {
   _iName :: T.Text,
   _iServingSize :: Maybe Int, -- serving size in grams
   _iServingNumber :: Maybe Int, -- typical number eaten
-  _iCalories, _iProtein, _iFat :: Int
+  _iCalories, _iProtein, _iFat, _iCarbs :: Int
 } deriving Show
 
 data Food = Food {

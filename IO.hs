@@ -32,6 +32,9 @@ class FromString a where
 instance FromString Int where
   fromString = readMay
 
+instance FromString Integer where
+  fromString = readMay
+
 instance FromString T.Text where
   fromString = Just . T.pack
 

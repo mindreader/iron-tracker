@@ -1,33 +1,43 @@
-{-# LANGUAGE TemplateHaskell, OverloadedStrings, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell, OverloadedStrings, GeneralizedNewtypeDeriving, BangPatterns #-}
 module Food where
 
 import Control.Lens
+
+import Control.Applicative
+
 
 import Control.Monad.State
 import Control.Monad.Trans (lift, liftIO)
 import Control.Monad (when)
 
 import qualified Data.Text as T hiding (find)
+import qualified Data.Text.IO as TIO (putStrLn)
 
 import Data.List (find)
 import qualified Data.Map as M
 import Data.Default (def)
-
-import Data.Maybe (listToMaybe)
+import Data.Monoid
+import Data.Maybe (isJust)
 
 import IO
 import Menu
 
-import Food.Types
-import Food.Config
+import Safe
 
 import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
 
+import Food.Types
+import Food.Config
+import Food.Formulas
+import Food.Log
 
-data FoodMenuCommand = MFInfo | MFLog | MFEat deriving (Eq, Ord)
+
+
+
+data FoodMenuCommand = MFInfo | MFLog | MFEat | MFToday deriving (Eq, Ord)
 
 newtype App a = App (StateT AppState IO a)
-  deriving (Monad, MonadState AppState, MonadIO, Functor)
+  deriving (Monad, MonadState AppState, MonadIO, Functor, Applicative)
 
 data AppState = AS {
   _foodState:: FoodState
@@ -54,32 +64,86 @@ mainLoop = do
     MenuQuit -> return () 
     MenuInput command' -> do
       case command' of
-        MFInfo -> foodInfo
-        MFLog  -> foodHistory
-        MFEat  -> foodEat
+        MFInfo   -> foodInfo >> return ()
+        MFLog    -> undefined -- foodHistory
+        MFEat    -> foodEat
+        MFToday  -> foodToday
   where
     menuCrud = [
+      (MFToday, "Today's Statistics"),
       (MFInfo,  "Food Information"::T.Text),
       (MFLog,   "Recent Food History"),
       (MFEat,   "Eat Something")]
 
 
 -- Get info about calorie counts in a food
-foodInfo :: App ()
+foodInfo :: App (Maybe (T.Text, Int, Float, Nutrition))
 foodInfo = do
   foods <- fmap (\x -> x ^. foodState ^. foods) get
-  food <- liftIO $ searchPrompt "Food Search:" $ (map (\x -> x ^. fName) . M.elems) foods
-  case food of
-    Just food' -> liftIO $ showFood food'
-    Nothing -> return ()
+  mfood <- liftIO $ searchPrompt "Food Search:" $ (map (\x -> x ^. fName) . M.elems) foods
+  case mfood of
+    Just foodName -> case M.lookup foodName foods of
+      Just food@(Food name ingredients) -> do
+        (howmany,nutrition) <- liftIO $ ingredients2Nutrition queryIngredient ingredients
+        percent <- if any (\ing -> isJust $ ing ^. iServingNumber) ingredients
+          then return 1.0
+          else fmap ((/ 100) . fromIntegral) $ (liftIO (prompt $ printf "What percentage of this meal did you just eat? (100):" :: IO Int))
+        showFood food $ scaleBy percent nutrition
+        return $ Just (name, howmany, percent, nutrition)
+      Nothing -> return Nothing
+    Nothing -> return Nothing
 
-showFood :: Food -> IO ()
-showFood (Food name ingredients) = do
-  printf "%s:\n" name
-  
+showFood :: MonadIO m => Food -> Nutrition -> m ()
+showFood (Food name _) (Nut (cals, prot, fat, carbs)) = liftIO $ do
+  printf " %s:\n" name
+  printf "  Calories : %d\n" cals
+  printf "  Protein  : %d\n" prot
+  printf "  Fat      : %d\n" fat
+  printf "  Carbs    : %d\n" carbs
+
+queryIngredient :: Ingredient -> IO (Int, Nutrition)
+queryIngredient (Ing name sSize sNum cals prot fat carbs) = do
+
+    scale <- case sSize of
+      Just sSize' -> do
+        grams <- prompt $ printf "How many grams of %s? (%d):" name sSize' :: IO Int
+        return $ (fromIntegral sSize') / (fromIntegral grams)
+      Nothing -> return (1.0 :: Float)
+
+    multiply <- case sNum of
+      Just sNum' -> prompt $ printf "How many %s did you eat? (%d):" name sNum'
+      Nothing -> return (1 :: Int)
+
+    return $ (multiply, scaleBy scale . scaleBy (fromIntegral multiply) $ Nut (cals, prot, fat, carbs))
 
 -- Log that you ate something.
-foodEat = undefined
+foodEat :: App ()
+foodEat = do
+  mfood <- foodInfo
+  case mfood of
+    Just (name, howmany, howmuch, nutrition) -> logNutrition name howmany howmuch nutrition
+    Nothing -> return ()
 
 -- Check recent food history to see what you've eaten.
-foodHistory = undefined
+foodToday :: App()
+foodToday = do
+  hist <- foodLogToday :: App [(T.Text, Nutrition, Int, Float)]
+  let nuts      = map (\(_,nut,_,_) -> nut) hist
+      (Nut (cals,prot,fat,carbs)) = foldr mappend mempty nuts
+  liftIO $ do
+    printf "Eaten today:\n"
+    when (length hist == 0) $ printf " Nothing!\n"
+    mapM_ showRow hist
+    printf "\nTotals:\n"
+
+    printf " Calories : %d\n" cals
+    printf " Protein  : %d\n" prot
+    printf " Fat      : %d\n" fat
+    printf " Carbs    : %d\n" carbs
+
+  where
+    showRow :: (T.Text, Nutrition, Int, Float) -> IO ()
+    showRow (name,_,howmany,howmuch) | howmany == 0   = printf " %s" name
+    showRow (name,_,howmany,howmuch) | howmuch == 1.0 = printf " %s" name
+    showRow (name,_,howmany,howmuch) | howmany /= 0   = printf " %s (%d)" name howmany
+    showRow (name,_,howmany,howmuch) | howmuch /= 1.0 = printf " %s (%d)" name (floor $ howmuch * 100 :: Int)
