@@ -1,0 +1,52 @@
+barbell: &barbell
+  barbell: true
+  minreps: 4
+  bodyweight: false
+
+bodyweight: &bodyweight
+  barbell: false
+  bodyweight: true
+  minreps: 0
+
+exercises:
+  bsquats:
+    name:   "BB Squats"
+    rank:   1
+    <<:     *barbell
+  bdeads:
+    name:   "BB Deadlifts"
+    rank:   2
+    <<:     *barbell
+  bbench:
+    name:   "BB Bench Press"
+    rank:   5
+    <<:     *barbell
+  bbentrow:
+    name:   "BB Bent-Over Row"
+    rank:   6
+    <<:     *barbell
+  bcurls:
+    name:  "BB Curls"
+    rank:   10
+    <<:    *barbell
+  bgoodmorning:
+    name:  "BB Good Morning"
+    rank:   3
+    <<:    *barbell
+  boverheadpress:
+    name:  "BB Overhead Press"
+    rank:   8
+    <<:    *barbell
+  pullups:
+    name:  "Pullups"
+    rank:   14
+    <<:    *bodyweight
+  btricepsext:
+    name:  "BB Triceps Extensions"
+    rank:   11
+    <<:    *barbell
+  bshrugs:
+    name:  "BB Shrugs"
+    rank:   4
+    <<:    *barbell
+    
