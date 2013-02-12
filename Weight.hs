@@ -33,6 +33,7 @@ newtype App a = App (StateT AppState IO a)
 
 data AppState = AS {
   _weightState :: WeightState,
+  _wCycle :: Integer,
   _today :: Day
 }
 
@@ -45,7 +46,7 @@ runApp :: App a -> IO a
 runApp (App s) = do
   today <- fmap (localDay . zonedTimeToLocalTime) getZonedTime
   ws <- loadWeightConfig
-  evalStateT s (AS ws today)
+  evalStateT s (AS ws 12 today)
 
 
 mainLoop :: App ()
@@ -83,16 +84,17 @@ type History = [(Day, (Reps, Proficiency))]
 workoutMode :: App ()
 workoutMode = do
   workout <- currentWorkout
+  wCycle <- fmap (\x -> x ^. wCycle) get
   today <- fmap (\x -> x ^. today) get
-  (exers, histories, plates, tryThis) <- fmap L.unzip4 $ mapM (fetchPlateConfig today) workout :: App ([Exercise], [History], [[PO.Plate]], [TryThis])
+  (exers, histories, plates, tryThis) <- fmap L.unzip4 $ mapM (fetchPlateConfig wCycle today) workout :: App ([Exercise], [History], [[PO.Plate]], [TryThis])
   workoutMode' [] (L.zip3 exers histories tryThis) plates
   liftIO $ printf "Workout complete.\n"
   where
       
-    fetchPlateConfig :: Day -> Exercise -> App (Exercise, History, [PO.Plate], TryThis)
-    fetchPlateConfig today exer = do
+    fetchPlateConfig :: Integer -> Day -> Exercise -> App (Exercise, History, [PO.Plate], TryThis)
+    fetchPlateConfig wCycle today exer = do
       history <- liftHistory exer 5
-      let tryThis@(TryThis _ tw) = suggestNewRepWeight today $ map (\(date,(attemptedReps,Pro r w)) -> DidThis attemptedReps r w date) history
+      let tryThis@(TryThis _ tw) = suggestNewRepWeight wCycle today $ map (\(date,(attemptedReps,Pro r w)) -> DidThis attemptedReps r w date) history
       return $ (exer, history, case plateCalc tw of Plates ps -> plateOrder2Calc ps, tryThis)
 
     -- TODO move to general purpose plate library for cleaner interface.

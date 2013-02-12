@@ -23,9 +23,17 @@ data Progress = Stagnant | Improved | Regressed
 adjustProfByReps :: Reps -> Proficiency -> Proficiency
 adjustProfByReps r' (Pro r w) = (Pro r' (changeReps r' r w))
 
-suggestNewRepWeight :: Day -> [DidThis] -> TryThis
-suggestNewRepWeight today = nextWeight' . removeOldCycles today
+suggestNewRepWeight :: Integer -> Day -> [DidThis] -> TryThis
+suggestNewRepWeight cycleLength today didthis = case removeOldCycles today didthis of
+    [] ->      nextWeightBeginAgain didthis
+    cycles ->  nextWeight' . removeOldCycles today $ cycles
   where
+
+    --Restarting at beginning, if we have past history, then use it.
+    nextWeightBeginAgain :: [DidThis] -> TryThis
+    nextWeightBeginAgain (x:xs) = TryThis 15 $ changeReps 15 (reps x) (weight x)
+
+    --Continuing on weight progression
     nextWeight' :: [DidThis] -> TryThis
     nextWeight' logs = case logs of
 
@@ -69,7 +77,7 @@ suggestNewRepWeight today = nextWeight' . removeOldCycles today
     removeOldCycles :: Day -> [DidThis] -> [DidThis]
     removeOldCycles today logs = case logs of
         [] -> []
-        (x:_) | today > addDays 14 (day x) -> []
+        (x:_) | today > addDays cycleLength (day x) -> []
         (x:xs) -> x : removeOldCycles (day x) xs
 
 improved, declined ::  DidThis -> Bool
@@ -90,13 +98,13 @@ test2 = do
   let b= drop 1 c
   let a = drop 1 b
   print $ a
-  print $ suggestNewRepWeight today a
+  print $ suggestNewRepWeight 14 today a
   print $ b
-  print $ suggestNewRepWeight today b
+  print $ suggestNewRepWeight 14 today b
   print $ c
-  print $ suggestNewRepWeight today c
+  print $ suggestNewRepWeight 14 today c
   print $ d
-  print $ suggestNewRepWeight today d
+  print $ suggestNewRepWeight 14 today d
 {-
 test = do
   today <- fmap (localDay . zonedTimeToLocalTime) getZonedTime
