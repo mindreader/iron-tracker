@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 module Weight.Log(
-  logLift, liftHistory, dbFilterCurrentWorkout, dbAddExerciseToWorkout, dbRemExerciseFromWorkout
+  logLift, pastHistory, allHistory, dbFilterCurrentWorkout, dbAddExerciseToWorkout, dbRemExerciseFromWorkout
 ) where
 
 import Data.Time
@@ -35,11 +35,20 @@ logLift exer (attemptedreps, prof) = withDb $ \conn -> do
       "insert into weight_log (exercise_id, attempted_reps, reps, weight, whenit) values (?, ?,?,?,date('now','localtime','-5 hour'))"
       (exer ^. eExerciseId, attemptedreps, prof ^. pReps, fromRational (prof ^. pWeight) :: Double)
 
-liftHistory :: MonadIO m => Exercise -> Int -> m [(Day, (Int, Proficiency))]
-liftHistory exer n = withDb $ \conn -> do
+allHistory :: MonadIO m => Exercise -> Int -> m [(Day, (Int, Proficiency))]
+allHistory exer n = withDb $ \conn -> do
+    logs <- query conn
+      "select attempted_reps, reps, weight, whenit from weight_log where exercise_id = ? order by whenit desc limit ?"
+      (exer ^. eExerciseId, n)
+    liftIO $ print logs
+    return $ fmap (\(ar,r,w,d) -> (d,(ar, Pro r (toRational (w::Double))))) logs
+
+pastHistory :: MonadIO m => Exercise -> Int -> m [(Day, (Int, Proficiency))]
+pastHistory exer n = withDb $ \conn -> do
     logs <- query conn
       "select attempted_reps, reps, weight, whenit from weight_log where exercise_id = ? and whenit <> date('now','localtime','-5 hour') order by whenit desc limit ?"
       (exer ^. eExerciseId, n)
+    liftIO $ print logs
     return $ fmap (\(ar,r,w,d) -> (d,(ar, Pro r (toRational (w::Double))))) logs
 
 

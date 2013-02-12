@@ -31,6 +31,7 @@ suggestNewRepWeight cycleLength today didthis = case removeOldCycles today didth
 
     --Restarting at beginning, if we have past history, then use it.
     nextWeightBeginAgain :: [DidThis] -> TryThis
+    nextWeightBeginAgain [] = TryThis 15 0
     nextWeightBeginAgain (x:xs) = TryThis 15 $ changeReps 15 (reps x) (weight x)
 
     --Continuing on weight progression

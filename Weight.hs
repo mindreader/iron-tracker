@@ -93,7 +93,7 @@ workoutMode = do
       
     fetchPlateConfig :: Integer -> Day -> Exercise -> App (Exercise, History, [PO.Plate], TryThis)
     fetchPlateConfig wCycle today exer = do
-      history <- liftHistory exer 5
+      history <- pastHistory exer 5
       let tryThis@(TryThis _ tw) = suggestNewRepWeight wCycle today $ map (\(date,(attemptedReps,Pro r w)) -> DidThis attemptedReps r w date) history
       return $ (exer, history, case plateCalc tw of Plates ps -> plateOrder2Calc ps, tryThis)
 
@@ -152,7 +152,7 @@ printWorkout adjuster = do
   where
     exerWithProf :: Exercise -> App (Either Exercise (Day, Proficiency, Exercise))
     exerWithProf exer = do
-      last <- liftHistory exer 1
+      last <- allHistory exer 1
       case headMay last of
         Nothing          -> return . Left $ exer
         Just (day, (_, prof)) -> return . Right $ (day, adjuster prof, exer)
