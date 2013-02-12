@@ -109,7 +109,7 @@ queryIngredient (Ing name sSize sNum cals prot fat carbs) = do
     scale <- case sSize of
       Just sSize' -> do
         grams <- prompt $ printf "How many grams of %s? (%d):" name sSize' :: IO Int
-        return $ (fromIntegral sSize') / (fromIntegral grams)
+        return $ (fromIntegral grams) / (fromIntegral sSize')
       Nothing -> return (1.0 :: Float)
 
     multiply <- case sNum of
