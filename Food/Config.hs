@@ -25,11 +25,16 @@ import Util
 instance FromJSON FoodState where
   parseJSON (Object v) = do
     ingredients <- fmap (M.mapWithKey (\k v -> v { _iName = k })) $ v .: "ingredients" :: Parser (M.Map T.Text Ingredient)
+    -- To facilitate the numerous amounts of foods that are just an ingredient, as well as piecemeal eating of things that
+    -- are not really actual recipes, all ingredients will be listed with ingredient: prepended to the map of recipes.
+    let ingredientsAsFood = M.mapKeys (\key -> "ingredient: " `T.append` key) . M.map (\ing -> [_iName ing]) $ ingredients
+
     foods <- v .: "foods" :: Parser (M.Map T.Text [T.Text])
+
     (cals, prot, fat, carbs) <- v .: "daily requirements" >>= withObject "daily requirements object" (\v ->
       (,,,) <$> v .:? "calories" <*> v .:? "protein" <*> v .:? "fat" <*> v .:? "carbs")
 
-    return $ FS (M.mapWithKey (namesToIngredients ingredients) foods) (Req cals prot fat carbs)
+    return $ FS (M.mapWithKey (namesToIngredients ingredients) (foods `M.union` ingredientsAsFood) ) (Req cals prot fat carbs)
   parseJSON _ = mzero
 
 namesToIngredients :: (M.Map T.Text Ingredient) -> T.Text -> [T.Text] -> Food
