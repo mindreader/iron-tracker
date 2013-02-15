@@ -35,7 +35,7 @@ import Food.Log
 
 
 
-data FoodMenuCommand = MFToday | MFEatToday | MFEatYesterday | MFInfo | MFLog  deriving (Eq, Ord)
+data FoodMenuCommand = MFStatsToday | MFStatsYesterday | MFEatToday | MFEatYesterday | MFInfo | MFLog  deriving (Eq, Ord)
 
 newtype App a = App (StateT AppState IO a)
   deriving (Monad, MonadState AppState, MonadIO, Functor, Applicative)
@@ -65,17 +65,20 @@ mainLoop = do
     MenuQuit -> return () 
     MenuInput command' -> do
       case command' of
-        MFInfo         -> foodInfo >> return ()
-        MFLog          -> undefined -- foodHistory
-        MFEatToday     -> foodEatToday
-        MFEatYesterday -> foodEatYesterday
+        MFInfo           -> foodInfo >> return ()
+        MFLog            -> undefined -- foodHistory
+        MFStatsToday     -> foodStatsToday
+        MFStatsYesterday -> foodStatsYesterday
+        MFEatToday       -> foodEatToday
+        MFEatYesterday   -> foodEatYesterday
       mainLoop
   where
     menuCrud = [
-      (MFToday, "Today's Statistics"),
-      (MFInfo,  "Food Information"::T.Text),
-      (MFLog,   "Recent Food History"),
-      (MFEatToday,   "Eat Something"),
+      (MFStatsToday,     "Today's Statistics"),
+      (MFStatsYesterday, "Yesterdays's Statistics"),
+      (MFInfo,           "Food Information"::T.Text),
+      (MFLog,            "Recent Food History"),
+      (MFEatToday,       "Eat Something"),
       (MFEatYesterday,   "Eat Something Yesterday")]
 
 
@@ -134,9 +137,16 @@ foodEatWhenever daysago = do
 
 
 -- Check recent food history to see what you've eaten.
-foodToday :: App()
-foodToday = do
-  hist <- foodLogDay 0 :: App [(T.Text, Nutrition, Int, Float)]
+foodStatsToday :: App()
+foodStatsToday = foodStatsWhenever 0
+
+foodStatsYesterday :: App()
+foodStatsYesterday = foodStatsWhenever 1
+
+
+foodStatsWhenever :: Int -> App ()
+foodStatsWhenever daysago = do
+  hist <- foodLogDay daysago :: App [(T.Text, Nutrition, Int, Float)]
   let nuts      = map (\(_,nut,howmany,howmuch) -> scaleBy howmuch . scaleBy (fromIntegral howmany) $ nut) hist
       (Nut (cals,prot,fat,carbs)) = foldr mappend mempty nuts
   liftIO $ do
