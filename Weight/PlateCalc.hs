@@ -47,9 +47,9 @@ plateCalc lbs | lbs < 45 = Plates [TooLight]
     minimize :: [Plate] -> [Plate]
     minimize [] = []
     minimize [p] = [p]
-    minimize ((P45  w1):(P45  w2):ps) = P45  (w1+w2):minimize ps
-    minimize ((P25  w1):(P25  w2):ps) = P25  (w1+w2):minimize ps
-    minimize ((P10  w1):(P10  w2):ps) = P10  (w1+w2):minimize ps
-    minimize ((P5   w1):(P5   w2):ps) = P5   (w1+w2):minimize ps
-    minimize ((P2p5 w1):(P2p5 w2):ps) = P2p5 (w1+w2):minimize ps
+    minimize ((P45  w1):(P45  w2):ps) = minimize $ P45  (w1+w2):ps
+    minimize ((P25  w1):(P25  w2):ps) = minimize $ P25  (w1+w2):ps
+    minimize ((P10  w1):(P10  w2):ps) = minimize $ P10  (w1+w2):ps
+    minimize ((P5   w1):(P5   w2):ps) = minimize $ P5   (w1+w2):ps
+    minimize ((P2p5 w1):(P2p5 w2):ps) = minimize $ P2p5 (w1+w2):ps
     minimize (p:ps) = p:minimize ps
