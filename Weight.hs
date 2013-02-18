@@ -84,8 +84,8 @@ type History = [(Day, (Reps, Proficiency))]
 workoutMode :: App ()
 workoutMode = do
   workout <- currentWorkout
-  wCycle <- fmap (\x -> x ^. wCycle) get
-  today <- fmap (\x -> x ^. today) get
+  wCycle <- use wCycle
+  today <- use today
   (exers, histories, plates, tryThis) <- fmap L.unzip4 $ mapM (fetchPlateConfig wCycle today) workout :: App ([Exercise], [History], [[PO.Plate]], [TryThis])
   workoutMode' [] (L.zip3 exers histories tryThis) plates
   liftIO $ printf "Workout complete.\n"
@@ -140,7 +140,7 @@ inputProficiency exer = do
       return $ Pro newreps newweight
 
 
-exerciseList = fmap (fmap snd . M.toList. (\x -> x ^. weightState ^. exercises)) get
+exerciseList = use (weightState . exercises . to M.elems)
 currentWorkout = fmap L.sort $ exerciseList >>= dbFilterCurrentWorkout
 
 printWorkout :: (Proficiency -> Proficiency) -> App ()

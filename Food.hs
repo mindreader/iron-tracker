@@ -85,8 +85,8 @@ mainLoop = do
 -- Get info about calorie counts in a food
 foodInfo :: App (Maybe (T.Text, Int, Float, Nutrition))
 foodInfo = do
-  foods <- fmap (\x -> x ^. foodState ^. foods) get
-  mfood <- liftIO $ searchPrompt "Food Search:" $ (sortBy (compare `on` T.length) . map (\x -> x ^. fName) . M.elems) foods
+  foods <- use (foodState . foods)
+  mfood <- liftIO $ searchPrompt "Food Search:" $ (sortBy (compare `on` T.length) . map (view fName) . M.elems) foods
   case mfood of
     Just foodName -> case M.lookup foodName foods of
       Just food@(Food name ingredients) -> do

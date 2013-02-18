@@ -7,6 +7,8 @@ import Control.Applicative
 import Control.Monad.Trans
 import Control.Monad.Trans.Maybe
 
+import Control.Lens
+
 import Data.Aeson (withObject)
 
 import qualified Data.Text as T
@@ -24,10 +26,10 @@ import Util
 
 instance FromJSON FoodState where
   parseJSON (Object v) = do
-    ingredients <- fmap (M.mapWithKey (\k v -> v { _iName = k })) $ v .: "ingredients" :: Parser (M.Map T.Text Ingredient)
+    ingredients <- fmap (M.mapWithKey (\k v -> set iName k v)) $ v .: "ingredients" :: Parser (M.Map T.Text Ingredient)
     -- To facilitate the numerous amounts of foods that are just an ingredient, as well as piecemeal eating of things that
     -- are not really actual recipes, all ingredients will be listed with ingredient: prepended to the map of recipes.
-    let ingredientsAsFood = M.mapKeys (\key -> "ingredient: " `T.append` key) . M.map (\ing -> [_iName ing]) $ ingredients
+    let ingredientsAsFood = M.mapKeys (\key -> "ingredient: " `T.append` key) . M.map (\ing -> [ing ^. iName]) $ ingredients
 
     foods <- v .: "foods" :: Parser (M.Map T.Text [T.Text])
 
