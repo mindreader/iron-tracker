@@ -147,7 +147,7 @@ foodStatsYesterday = foodStatsWhenever 1
 foodStatsWhenever :: Int -> App ()
 foodStatsWhenever daysago = do
   hist <- foodLogDay daysago :: App [(T.Text, Nutrition, Int, Float)]
-  let nuts      = map (\(_,nut,howmany,howmuch) -> scaleBy howmuch . scaleBy (fromIntegral howmany) $ nut) hist
+  let nuts      = fmap (view _2) hist :: [Nutrition]
       (Nut (cals,prot,fat,carbs)) = foldr mappend mempty nuts
   liftIO $ do
     printf "Eaten today:\n"
