@@ -162,6 +162,7 @@ foodStatsWhenever daysago = do
 
   where
     showRow :: (T.Text, Nutrition, Int, Float) -> IO ()
-    showRow (name,_,howmany,howmuch) | howmany == 0 && howmuch == 1.0 = printf " %s\n" name
-                                     | howmany /= 0                   = printf " %s (%d)\n" name howmany
-                                     | otherwise {- howmuch /= 1.0 -} = printf " %s (%d%%)\n" name (floor $ howmuch * 100 :: Int)
+    showRow (name,_,howmany,howmuch) | howmany == 1 && howmuch == 1.0 = printf " %s\n" name
+                                     | howmany /= 1 && howmuch == 1.0 = printf " %s (%d)\n" name howmany
+                                     | howmany == 1 && howmuch /= 1.0 = printf " %s (%d%%)\n" name (floor $ howmuch * 100 :: Int)
+                                     | otherwise {- howmuch /= 1.0 -} = printf " %s (%d) (%d%%)\n" name howmany (floor $ howmuch * 100 :: Int)
