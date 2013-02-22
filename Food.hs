@@ -95,7 +95,7 @@ foodInfo = do
           then return 1.0
           else fmap ((/ 100) . fromIntegral) $ (liftIO (prompt $ printf "What percentage of this meal did you just eat? (100):" :: IO Int))
         showFood food $ scaleBy percent nutrition
-        return $ Just (name, howmany, percent, nutrition)
+        return $ Just $ (name, howmany, percent, scaleBy percent $ nutrition)
       Nothing -> return Nothing
     Nothing -> return Nothing
 
