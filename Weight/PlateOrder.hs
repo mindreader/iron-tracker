@@ -80,7 +80,7 @@ optimalPlateOrder :: Lift -> Workout -> Workout
 optimalPlateOrder initialLift = minWorkout . (L.map (initialLift :)) . L.map (L.filter desireable) . allPossibleWorkouts . take 4
   where
     minWorkout :: [Workout] -> Workout
-    minWorkout xs = tail . snd . L.minimumBy (compare `on` fst) . zip (L.map wCost xs) $ xs
+    minWorkout xs = tail . snd . L.minimumBy (compare `on` fst) . reverse . zip (L.map wCost xs) $ xs
 
 -- Every possible combination of plate orderings given an initial set of plates per exercise.
 allPossibleWorkouts :: Workout -> [Workout]
