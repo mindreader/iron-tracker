@@ -18,9 +18,18 @@ import Data.List (findIndex)
 
 import IO
 
+import Weight.Types
+
+import Control.Lens
+
 class Menuable a where
   type MenuKey a
   toMenu :: a -> Menu (MenuKey a)
+
+
+instance Menuable [Exercise] where
+  type MenuKey [Exercise] = Exercise
+  toMenu = toMenu .  map (\x -> (x,x ^. eName))
 
 
 instance Menuable [T.Text] where

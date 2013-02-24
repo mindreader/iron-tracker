@@ -8,8 +8,6 @@ import qualified Data.Map as M
 import Control.Applicative
 import Data.Default
 
-import Menu
-
 data WeightState = WS {
   _exercises :: M.Map T.Text Exercise -- indexed by their id
 } deriving (Show)
@@ -40,10 +38,6 @@ data Proficiency = Pro {
 makeLenses ''WeightState
 makeLenses ''Exercise
 makeLenses ''Proficiency
-
-instance Menuable [Exercise] where
-  type MenuKey [Exercise] = Exercise
-  toMenu = toMenu .  map (\x -> (x,x ^. eName))
 
 instance Ord Exercise where
   compare e1 e2 = compare (e1 ^. eRank) (e2 ^. eRank)

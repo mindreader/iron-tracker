@@ -10,8 +10,6 @@ import Data.Monoid
 
 import Data.Default
 
-import Menu
-
 type Calories = Int
 type Fat = Int
 type Protein = Int
