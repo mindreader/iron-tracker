@@ -113,12 +113,7 @@ workoutMode = do
       printHistory history
       let thisPlateOrder = head . optimalPlateOrder lastPlateOrder $ plates
       liftIO $ printf "You must do %s.\n" (formatRepsWeight tr tw (Just $ PO.displayPlates thisPlateOrder))
-      change <- liftIO $ prompt "Any change? (y/n)"
-      if (change == ("y"::String))
-        then inputProficiency exer >>= (\pro -> logLift exer (tr, pro))
-        else case headMay history of
-               Nothing -> return ()
-               Just (_,prof) -> logLift exer prof
+      inputProficiency exer >>= (\pro -> logLift exer (tr, pro))
       workoutMode' thisPlateOrder xs ps
 
     printHistory :: History -> App ()
