@@ -61,7 +61,7 @@ suggestNewRepWeight cycleLength today didthis = case removeOldCycles today didth
 
       -- We don't have enough history to determine next workout.  Just repeat what you just did.
       -- Also, if there are any holes in the above logic, we'll end up here.  Hopefully appropriate.
-      (x:_) -> {- trace "not enough history" $ -} TryThis (reps x) (weight x)
+      (x:_) -> {- trace "not enough history" $ -} TryThis (toldreps x) (weight x)
 
       -- You've never done this before, you figure out what to do, and then tell me how you did for next time.
       [] -> {- trace "never done before" $ -} TryThis 15 0
