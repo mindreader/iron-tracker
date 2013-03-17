@@ -26,7 +26,7 @@ adjustProfByReps r' (Pro r w) = (Pro r' (changeReps r' r w))
 suggestNewRepWeight :: Integer -> Day -> [DidThis] -> TryThis
 suggestNewRepWeight cycleLength today didthis = case removeOldCycles today didthis of
     [] ->      nextWeightBeginAgain didthis
-    cycles ->  nextWeight' . removeOldCycles today $ cycles
+    cycles ->  nextWeight' cycles
   where
 
     --Restarting at beginning, if we have past history, then use it.
