@@ -38,6 +38,13 @@ suggestNewRepWeight cycleLength today didthis = case removeOldCycles today didth
     nextWeight' :: [DidThis] -> TryThis
     nextWeight' logs = case logs of
 
+
+      -- Regardless of anything, if the weight hasn't changed upward in five workouts, weight needs to change.
+      -- Go down two reps because low weight exercises often one rep isn't enough.
+      all@(x:xs) | length all >= 5 && sameorlessweight all ->
+        let newreps = toldreps x - if toldreps x > 10 then 2 else 1 
+        in {- trace "sameweight" $ -} TryThis newreps $ changeReps newreps (reps x) (weight x)
+
       -- Improved over last workout, renormalize at same reps as you were originally told to do.
       (x:_) | improved x ->
         {- trace "improved" $ -} TryThis (toldreps x) $ changeReps (toldreps x) (reps x) (weight x)
@@ -85,7 +92,10 @@ improved, declined ::  DidThis -> Bool
 improved x = reps x > toldreps x
 declined x = reps x < toldreps x
 stagnant :: DidThis -> DidThis -> Bool
-stagnant x y = toldreps x == toldreps y && reps x <= reps y
+stagnant x y = toldreps x == toldreps y && reps x <= reps y && weight x <= weight y
+sameorlessweight xs = maximum weights <= last weights
+  where  weights = map weight xs
+
   
 test2 = do
   today <- fmap (localDay . zonedTimeToLocalTime) getZonedTime
