@@ -15,6 +15,7 @@ import Safe
 
 
 import Control.Monad.State
+import Control.Applicative
 
 import Weight.Formulas
 import Weight.Config
@@ -29,7 +30,7 @@ import IO
 data WeightMenuCommand = MWWorkoutMode | MWWorkoutStatus | MWAdjustWorkoutReps | MWUpdate | MWInclude | MWDisInclude deriving (Eq, Ord)
 
 newtype App a = App (StateT AppState IO a)
-  deriving (Monad, MonadState AppState, MonadIO, Functor)
+  deriving (Monad, MonadState AppState, MonadIO, Functor, Applicative)
 
 data AppState = AS {
   _weightState :: WeightState,
@@ -113,7 +114,7 @@ workoutMode = do
       printHistory history
       let thisPlateOrder = head . optimalPlateOrder lastPlateOrder $ plates
       liftIO $ printf "You must do %s.\n" (formatRepsWeight tr tw (Just $ PO.displayPlates thisPlateOrder))
-      inputProficiency exer >>= (\pro -> logLift exer (tr, pro))
+      inputReps >>= (\reps -> logLift exer (tr, Pro reps tw))
       workoutMode' thisPlateOrder xs ps
 
     printHistory :: History -> App ()
@@ -128,11 +129,13 @@ workoutMode = do
     formatRepsWeight reps weight (Just plates) = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) plates
     formatRepsWeight reps weight Nothing = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (displayPlateCalc weight)
 
-inputProficiency :: Exercise -> App Proficiency
-inputProficiency exer = do
-      newreps   <- liftIO $ prompt "New reps:"
-      newweight <- liftIO $ prompt "New weight (0 for bodyweight):"
-      return $ Pro newreps newweight
+inputReps :: App Reps
+inputReps = liftIO $ prompt "New reps:"
+inputWeight :: App Weight
+inputWeight = liftIO $ prompt "New weight (0 for bodyweight):"
+
+inputProficiency :: App Proficiency
+inputProficiency = Pro <$> inputReps <*> inputWeight
 
 
 exerciseList = use (weightState . exercises . to M.elems)
@@ -171,7 +174,7 @@ updateSingleExercise = do
   mexer <- liftIO $ inputMenu def "Pick Exercise To Update" exercises
   case mexer of
     MenuError -> liftIO $ printf "You need to input some exercises to your config file."
-    MenuInput exer -> inputProficiency exer >>= (\pro -> logLift exer (pro ^. pReps, pro))
+    MenuInput exer -> inputProficiency >>= (\pro -> logLift exer (pro ^. pReps, pro))
     MenuQuit -> return ()
   return ()
 
