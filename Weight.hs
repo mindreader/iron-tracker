@@ -120,7 +120,7 @@ workoutMode = do
     printHistory history = do
       mapM_ printHistory' (L.reverse history)
       where
-        printHistory' (day, (_,pro)) = liftIO $ printf " %s : %s\n" (show day) (formatRepsWeight (pro ^. pReps) (pro ^. pWeight) Nothing)
+        printHistory' (day, (attempted,pro)) = liftIO $ printf " %s : tried %d did %s\n" (show day) attempted (formatRepsWeight (pro ^. pReps) (pro ^. pWeight) Nothing)
 
     formatRepsWeight :: Reps -> Weight -> (Maybe String) -> String
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
