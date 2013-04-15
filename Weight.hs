@@ -113,7 +113,10 @@ workoutMode = do
       liftIO $ printf "\n%s\n" (exer ^. eName)
       printHistory history
       let thisPlateOrder = head . optimalPlateOrder lastPlateOrder $ plates
-      liftIO $ printf "You must do %s.\n" (formatRepsWeight tr tw (Just $ PO.displayPlates thisPlateOrder))
+      liftIO $ case exer ^. eType of
+        Barbell -> printf "You must do %s.\n" (formatRepsWeight tr tw (Just $ PO.displayPlates thisPlateOrder))
+        Bodyweight -> printf "You must do whatever.\n"
+        Dumbbell -> printf "You must do however many at %d" (999::Int)
       inputReps >>= (\reps -> logLift exer (tr, Pro reps tw))
       workoutMode' thisPlateOrder xs ps
 
@@ -132,7 +135,7 @@ workoutMode = do
 inputReps :: App Reps
 inputReps = liftIO $ prompt "New reps:"
 inputWeight :: App Weight
-inputWeight = liftIO $ prompt "New weight (0 for bodyweight):"
+inputWeight = liftIO $ prompt "New weight:"
 
 inputProficiency :: App Proficiency
 inputProficiency = Pro <$> inputReps <*> inputWeight

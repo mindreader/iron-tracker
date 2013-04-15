@@ -16,11 +16,13 @@ instance Default WeightState where
   def = WS M.empty
 
 
+data ExerciseType = Bodyweight | Dumbbell | Barbell deriving (Eq, Show)
+
 data Exercise = Exercise {
   _eExerciseId :: T.Text,  -- "bsquats"
   _eName       :: T.Text,  -- "Barbell Squats"
   _eMinReps    :: Int,     -- minimum I am willing to do
-  _eBarbell    :: Bool,    -- requires a barbell
+  _eType       :: ExerciseType, -- barbell, dumbbell, or bodyweight
   _eBodyWeight :: Bool,    -- bodyweight exercise requires no weight
   _eRank       :: Float    -- Determines where exercise will appear in workout
 } deriving (Eq, Show)

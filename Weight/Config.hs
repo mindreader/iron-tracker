@@ -29,9 +29,17 @@ parseExerciseWithKey k (Object v) = do
   minreps    <- v .:? "minreps"    .!= 4
   barbell    <- v .:? "barbell"    .!= True
   bodyweight <- v .:? "bodyweight" .!= False
+  dumbbell   <- v .:? "dumbbell"   .!= False
   rank       <- v .:  "rank"
-  return $ Exercise k name minreps barbell bodyweight rank
+  return $ Exercise k name minreps (etype barbell dumbbell bodyweight) bodyweight rank
+  where
+    etype True _ _ = Barbell
+    etype _ True _ = Dumbbell
+    etype _ _ True = Bodyweight
+    etype _ _ _    = Barbell
+
 parseExerciseWithKey _ _ = mzero
+
 
 loadWeightConfig :: IO WeightState
 loadWeightConfig = do
