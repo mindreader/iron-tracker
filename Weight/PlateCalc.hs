@@ -1,4 +1,4 @@
-module Weight.PlateCalc(displayPlateCalc,Plate(..),plateCalc, Plates(Plates)) where
+module Weight.PlateCalc(displayPlateCalc,Plate(..),plateCalc, Plates(Plates), BarType(..)) where
 
 import Data.List (intersperse)
 
@@ -7,10 +7,12 @@ data Plates = Plates [Plate]
 instance Show Plates where
   show = displayPlates
 
+data BarType = Barbell | Dumbbell deriving (Show)
+
 data Plate = P45 Int | P25 Int | P10 Int | P5 Int | P2p5 Int | TooLight deriving Show
 
-displayPlateCalc :: Rational -> String
-displayPlateCalc = displayPlates . plateCalc
+displayPlateCalc :: BarType -> Rational -> String
+displayPlateCalc ctype = displayPlates . plateCalc ctype
 
 
 displayPlates :: Plates -> String
@@ -30,11 +32,14 @@ displayPlates (Plates ps) = dPlates ps
 
 
 
-plateCalc :: Rational -> Plates
-plateCalc lbs | lbs < 45 = Plates [TooLight]
-              | otherwise = Plates $ minimize $ plateCalc' (lbs - 45)
+plateCalc :: BarType -> Rational -> Plates
+plateCalc ctype lbs | lbs < barWeight ctype = Plates [TooLight]
+                      | otherwise = Plates $ minimize $ plateCalc' (lbs - barWeight ctype)
 
   where
+    barWeight Barbell  = 45
+    barWeight Dumbbell = 2.5
+
     plateCalc' :: Rational -> [Plate]
     plateCalc' lbs | lbs >= 90  = P45  2:plateCalc' (lbs - 90)
                    | lbs >= 50  = P25  2:plateCalc' (lbs - 50)

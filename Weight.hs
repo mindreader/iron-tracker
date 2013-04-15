@@ -21,7 +21,7 @@ import Weight.Formulas
 import Weight.Config
 import Weight.Types
 import Weight.Log
-import Weight.PlateCalc as PC
+import qualified Weight.PlateCalc as PC
 import Weight.PlateOrder as PO
 
 import Menu
@@ -96,7 +96,7 @@ workoutMode = do
     fetchPlateConfig wCycle today exer = do
       history <- pastHistory exer 5
       let tryThis@(TryThis _ tw) = suggestNewRepWeight wCycle today $ map (\(date,(attemptedReps,Pro r w)) -> DidThis attemptedReps r w date) history
-      return $ (exer, history, case plateCalc tw of Plates ps -> plateOrder2Calc ps, tryThis)
+      return $ (exer, history, case PC.plateCalc PC.Barbell tw of PC.Plates ps -> plateOrder2Calc ps, tryThis)
 
     -- TODO move to general purpose plate library for cleaner interface.
     plateOrder2Calc :: [PC.Plate] -> [PO.Plate]
@@ -130,7 +130,7 @@ workoutMode = do
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
     formatRepsWeight reps 0.0 _ = printf "%d" reps
     formatRepsWeight reps weight (Just plates) = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) plates
-    formatRepsWeight reps weight Nothing = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (displayPlateCalc weight)
+    formatRepsWeight reps weight Nothing = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (PC.displayPlateCalc PC.Barbell weight)
 
 inputReps :: App Reps
 inputReps = liftIO $ prompt "New reps:"
@@ -160,7 +160,7 @@ printWorkout adjuster = do
         
     formatLine namelen (Left exercise) = printf ("%" ++ show namelen ++ "s : (never done)") (exercise ^. eName)
     formatLine namelen (Right (date, Pro reps 0.0, exercise)) = printf ("%" ++ show namelen ++ "s : %d") (exercise ^. eName) reps
-    formatLine namelen (Right (date, Pro reps weight, exercise)) = printf ("%" ++ show namelen ++ "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (displayPlateCalc $ weight)
+    formatLine namelen (Right (date, Pro reps weight, exercise)) = printf ("%" ++ show namelen ++ "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (PC.displayPlateCalc PC.Barbell weight)
 
 rTrimZeros :: String -> String
 rTrimZeros = L.reverse . L.dropWhile (=='.') . L.dropWhile (== '0') . L.reverse
