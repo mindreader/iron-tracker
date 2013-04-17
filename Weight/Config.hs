@@ -31,7 +31,7 @@ parseExerciseWithKey k (Object v) = do
   bodyweight <- v .:? "bodyweight" .!= False
   dumbbell   <- v .:? "dumbbell"   .!= False
   rank       <- v .:  "rank"
-  return $ Exercise k name minreps (etype barbell dumbbell bodyweight) bodyweight rank
+  return $ Exercise k name minreps (etype barbell dumbbell bodyweight) rank
   where
     etype True _ _ = Barbell
     etype _ True _ = Dumbbell
