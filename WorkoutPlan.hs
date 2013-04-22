@@ -31,7 +31,8 @@ data WorkoutStep =
     _sLift :: PO.Lift
   } |
   BodyWeightExercise {
-    _sExercise :: Exercise
+    _sExercise :: Exercise,
+    _sInt :: Reps
   } deriving Show
 
 type HistFunc m = (Exercise -> m [(Day, (Int, Proficiency))])
@@ -60,10 +61,18 @@ plan' exers wCycle histf suggest = Plan . L.reverse <$> foldM nextStep [] exers
       hist <- histf exercise
       case exercise ^. eType of
         Barbell    -> return (undefined:sofarSteps)
+
         Dumbbell   -> return (undefined:sofarSteps)
+
         Bodyweight -> do
-          let blah = map (view $ _2 . _2 . pReps) hist :: [Reps]
-          return (undefined:sofarSteps)
+          -- Attempted reps is the average rounded up of the last few (up to 3) workouts.
+          let attemptReps = average $ (L.take 3 hist) ^.. (traverse . _2 . _2 . pReps) :: Reps
+          return $ BodyWeightExercise exercise attemptReps : sofarSteps
+
+average [] = 0
+average xs = ceiling $ (fromIntegral $ sum' xs) / (fromIntegral $ length xs)
+  where
+    sum' = foldr1 (+)
 
 
 prop_plan :: (Functor m, Monad m) => WeightState -> m WorkoutPlan
