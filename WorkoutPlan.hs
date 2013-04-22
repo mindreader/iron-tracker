@@ -59,15 +59,15 @@ plan' exers wCycle histf suggest = Plan . L.reverse <$> foldM nextStep [] exers
 
     nextStep sofarSteps exercise = do
       hist <- histf exercise
-      case exercise ^. eType of
-        Barbell    -> return (undefined:sofarSteps)
+      return $ case exercise ^. eType of
+        Barbell    -> (undefined:sofarSteps)
 
-        Dumbbell   -> return (undefined:sofarSteps)
+        Dumbbell   -> (undefined:sofarSteps)
 
-        Bodyweight -> do
+        Bodyweight ->
           -- Attempted reps is the average rounded up of the last few (up to 3) workouts.
           let attemptReps = average $ (L.take 3 hist) ^.. (traverse . _2 . _2 . pReps) :: Reps
-          return $ BodyWeightExercise exercise attemptReps : sofarSteps
+          in BodyWeightExercise exercise attemptReps : sofarSteps
 
 average [] = 0
 average xs = ceiling $ (fromIntegral $ sum' xs) / (fromIntegral $ length xs)
