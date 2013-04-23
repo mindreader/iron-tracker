@@ -100,7 +100,7 @@ workoutMode = do
     workoutStep (BodyWeightExercise exer reps) = do
       liftIO $ printf "You must do %d reps.\n" reps
 
-    beforeStep step = liftIO (pastHistory (_sExercise step) 5) >>= printHistory
+    beforeStep step = liftIO (printf "%s" (_eName . _sExercise $ step)) >> liftIO (pastHistory (_sExercise step) 5) >>= printHistory
     afterStep step = inputReps >>= (\reps -> logLift (_sExercise step) (_sReps step, Pro reps (_sWeight step)))
 
     formatRepsWeight :: Reps -> Weight -> (Maybe String) -> String

@@ -95,9 +95,11 @@ plan' exers wCycle histf suggestf = Plan . L.reverse <$> foldM nextStep [] exers
           in (BarbellExercise exercise tr tw plateOrder:sofarSteps)
 
     -- 4. here's where we optimize the plate orders.
+    reorderBarbells [] = []
     reorderBarbells steps = reorderBarbells' [] steps
       where
         reorderBarbells' :: [PO.Plate] -> [WorkoutStep] -> [WorkoutStep]
+        reorderBarbells' _ [] = []
         reorderBarbells' prev (step@(BarbellExercise {}):xs) =
           let current = step { _sPlateOrder = (PO.optimalPlateOrder prev (fmap (view sPlateOrder) . L.filter isBarbell $ (step:xs))) } :: WorkoutStep
           in current : reorderBarbells' (current ^. sPlateOrder) xs
