@@ -1,8 +1,10 @@
-module Weight.PlateCalc(displayPlateCalc,Plate(..),plateCalc, Plates(Plates), BarType(..)) where
+module Weight.PlateCalc(displayPlateCalc,Plate(..),plateCalc, Plates(Plates,getPlates), BarType(..)) where
 
 import Data.List (intersperse)
 
-data Plates = Plates [Plate]
+newtype Plates = Plates {
+  getPlates :: [Plate]
+}
 
 instance Show Plates where
   show = displayPlates

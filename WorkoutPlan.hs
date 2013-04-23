@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings, TemplateHaskell, ScopedTypeVariables #-}
-module WorkoutPlan where
+module WorkoutPlan (workoutPlan, WorkoutPlan(..), WorkoutStep(..)) where
 
 
 import Control.Monad (foldM)
@@ -43,21 +43,22 @@ data WorkoutStep =
   } deriving Show
 
 type HistFunc m = (Exercise -> m [(Day, (Reps, Proficiency))])
-type SuggestionFunc = (CycleLength -> Day -> [(Day, (Reps, Proficiency))] -> TryThis)
+type SuggestionFunc = ([DidThis] -> TryThis)
 
 makeLenses ''WorkoutPlan
 makeLenses ''WorkoutStep
 
 
-plan :: WeightState -> CycleLength -> IO WorkoutPlan
-plan ws cycle = do
+workoutPlan :: WeightState -> CycleLength -> IO WorkoutPlan
+workoutPlan ws cycle = do
   currentWorkout <- L.sort <$> dbFilterCurrentWorkout (ws ^. exercises . to M.elems)
-  plan' currentWorkout cycle (flip pastHistory 5) undefined undefined
+  today <- localDay . zonedTimeToLocalTime <$> getZonedTime
+  plan' currentWorkout cycle (flip pastHistory 5) (suggestNewRepWeight cycle today)
 
 
 
-plan' :: forall m. (Functor m, Monad m) => [Exercise] -> CycleLength -> HistFunc m -> SuggestionFunc -> m Day -> m WorkoutPlan
-plan' exers wCycle histf suggest todayf = Plan . L.reverse <$> foldM nextStep [] exers
+plan' :: forall m. (Functor m, Monad m) => [Exercise] -> CycleLength -> HistFunc m -> SuggestionFunc -> m WorkoutPlan
+plan' exers wCycle histf suggestf = Plan . L.reverse <$> foldM nextStep [] exers
   where
 
     nextStep :: [WorkoutStep] -> -- Workout up to this point
@@ -66,11 +67,10 @@ plan' exers wCycle histf suggest todayf = Plan . L.reverse <$> foldM nextStep []
 
     nextStep sofarSteps exercise = do
       hist <- histf exercise
-      today <- todayf
       let recentRepAverage = average . fmap (view $ _2 . _2 . pReps) . L.take 3 $ hist :: Reps
 
       return . reorderBarbells $ case exercise ^. eType of
-        Dumbbell   ->
+        Dumbbell ->
           -- Preliminary guestimate for dumbbells because I don't know how I want to do them yet.
           let attemptWeight = maximum . fmap (view $ _2 . _2 . pWeight) . L.take 3 $ hist :: Weight
           in DumbbellExercise exercise recentRepAverage attemptWeight : sofarSteps
@@ -79,22 +79,33 @@ plan' exers wCycle histf suggest todayf = Plan . L.reverse <$> foldM nextStep []
           -- Attempted reps is the average rounded up of the last few (up to 3) workouts.
           BodyWeightExercise exercise recentRepAverage : sofarSteps
 
-        Barbell    ->
+        Barbell ->
           let
               -- 1. modify history into [didthis]
-              histToDidThis (day, (told, (Pro r w))) = DidThis told r w day
-              didThese = histToDidThis <$> hist
+              hist2DidThis (day, (told, (Pro r w))) = DidThis told r w day
+              didThese = hist2DidThis <$> hist
 
               -- 2. suggestNewRepWeight :: CycleLength -> Day -> [DidThis] -> TryThis
               -- based on what you did recently and the current day, try this
-              (TryThis tr tw) = suggestNewRepWeight wCycle today didThese
+              (TryThis tr tw) = suggestf didThese
 
               -- 3. modify trythis weight into plate order (suboptimal, we'll optimize later)
-              plateOrder = plateCalc2Order $ case PC.plateCalc PC.Barbell tw of (PC.Plates p) -> p
+              plateOrder = plateCalc2Order . PC.getPlates . PC.plateCalc PC.Barbell $ tw
 
           in (BarbellExercise exercise tr tw plateOrder:sofarSteps)
 
-    reorderBarbells steps = undefined
+    -- 4. here's where we optimize the plate orders.
+    reorderBarbells steps = reorderBarbells' [] steps
+      where
+        reorderBarbells' :: [PO.Plate] -> [WorkoutStep] -> [WorkoutStep]
+        reorderBarbells' prev (step@(BarbellExercise {}):xs) =
+          let current = step { _sPlateOrder = (PO.optimalPlateOrder prev (fmap (view sPlateOrder) . L.filter isBarbell $ (step:xs))) } :: WorkoutStep
+          in current : reorderBarbells' (current ^. sPlateOrder) xs
+
+        reorderBarbells' prev (step:xs) = step:reorderBarbells' prev xs
+
+        isBarbell (BarbellExercise {}) = True
+        iSBarbell _ = False
 
 average [] = 0
 average xs = ceiling $ (fromIntegral $ sum' xs) / (fromIntegral $ length xs)
@@ -103,7 +114,7 @@ average xs = ceiling $ (fromIntegral $ sum' xs) / (fromIntegral $ length xs)
 
 
 prop_plan :: (Functor m, Monad m) => WeightState -> m WorkoutPlan
-prop_plan _ = plan' testWorkout 12 historyGetter undefined undefined
+prop_plan _ = plan' testWorkout 12 historyGetter undefined
   where
     testWorkout = [Exercise "bsquats" "barbell squats" 2 Barbell 1]
     historyGetter x = return []

@@ -26,13 +26,14 @@ overhead = [P10,P10,P2p5]
 curls    = [P10,P5]
 triceps  = [P10,P2p5]
 
-
+{-
 main =  blah [] testWorkout
     where
       blah _ [] = []
       blah last stuff = do
         let this = head $ optimalPlateOrder last stuff
         this:blah this (tail stuff)
+-}
 
 displayPlates :: Lift -> String
 displayPlates [] = "just the bar"
@@ -76,8 +77,8 @@ desireable _ = True
 -- Limit to 4 workouts to ease computation.
 -- WARNING - if there is a bodyweight exercise in middle of workout, that will jack up this algorithm
 --   (it will assume you intend to take all weight off bar for that exercise).
-optimalPlateOrder :: Lift -> Workout -> Workout
-optimalPlateOrder initialLift = minWorkout . (L.map (initialLift :)) . L.map (L.filter desireable) . allPossibleWorkouts . take 4
+optimalPlateOrder :: Lift -> Workout -> Lift
+optimalPlateOrder initialLift = head . minWorkout . (L.map (initialLift :)) . L.map (L.filter desireable) . allPossibleWorkouts . take 4
   where
     minWorkout :: [Workout] -> Workout
     minWorkout xs = tail . snd . L.minimumBy (compare `on` fst) . reverse . zip (L.map wCost xs) $ xs
