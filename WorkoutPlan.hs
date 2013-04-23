@@ -54,26 +54,26 @@ plan' :: forall m. (Functor m, Monad m) => [Exercise] -> CycleLength -> HistFunc
 plan' exers wCycle histf suggest = Plan . L.reverse <$> foldM nextStep [] exers
   where
 
-    nextStep :: [WorkoutStep] -> -- ^ Workout up to this point
-                Exercise ->      -- ^ Exercise for this step
-                m [WorkoutStep]  -- ^ Prepend next step to workout so far.
+    nextStep :: [WorkoutStep] -> -- Workout up to this point
+                Exercise ->      -- Exercise for this step
+                m [WorkoutStep]  -- Prepend next step to workout so far.
 
     nextStep sofarSteps exercise = do
       hist <- histf exercise
+      let recentRepAverage = average . fmap (view $ _2 . _2 . pReps) . L.take 3 $ hist :: Reps
+
       return $ case exercise ^. eType of
         Barbell    -> (undefined:sofarSteps)
 
         Dumbbell   ->
 
           -- Preliminary guestimate for dumbbells because I don't know how I want to do them yet.
-          let attemptReps   = average $ (L.take 3 hist) ^.. (traverse . _2 . _2 . pReps) :: Reps
-              attemptWeight = maximum $ (L.take 3 hist) ^.. (traverse . _2 . _2 . pWeight) :: Weight
-          in DumbbellExercise exercise attemptReps attemptWeight : sofarSteps
+          let attemptWeight = maximum . map (view $ _2 . _2 . pWeight) . L.take 3 $ hist :: Weight
+          in DumbbellExercise exercise recentRepAverage attemptWeight : sofarSteps
 
         Bodyweight ->
           -- Attempted reps is the average rounded up of the last few (up to 3) workouts.
-          let attemptReps = average $ (L.take 3 hist) ^.. (traverse . _2 . _2 . pReps) :: Reps
-          in BodyWeightExercise exercise attemptReps : sofarSteps
+          BodyWeightExercise exercise recentRepAverage : sofarSteps
 
 average [] = 0
 average xs = ceiling $ (fromIntegral $ sum' xs) / (fromIntegral $ length xs)
