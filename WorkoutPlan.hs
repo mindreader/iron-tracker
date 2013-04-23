@@ -63,7 +63,12 @@ plan' exers wCycle histf suggest = Plan . L.reverse <$> foldM nextStep [] exers
       return $ case exercise ^. eType of
         Barbell    -> (undefined:sofarSteps)
 
-        Dumbbell   -> (undefined:sofarSteps)
+        Dumbbell   ->
+
+          -- Preliminary guestimate for dumbbells because I don't know how I want to do them yet.
+          let attemptReps   = average $ (L.take 3 hist) ^.. (traverse . _2 . _2 . pReps) :: Reps
+              attemptWeight = maximum $ (L.take 3 hist) ^.. (traverse . _2 . _2 . pWeight) :: Weight
+          in DumbbellExercise exercise attemptReps attemptWeight : sofarSteps
 
         Bodyweight ->
           -- Attempted reps is the average rounded up of the last few (up to 3) workouts.
