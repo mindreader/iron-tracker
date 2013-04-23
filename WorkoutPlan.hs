@@ -23,7 +23,6 @@ import Weight.Formulas
 
 data WorkoutPlan = Plan [WorkoutStep] deriving Show
 
-type PlateOrder = [PO.Plate]
 
 data WorkoutStep =
   BarbellExercise {
@@ -42,6 +41,7 @@ data WorkoutStep =
     _sReps     :: Reps
   } deriving Show
 
+type PlateOrder = [PO.Plate]
 type HistFunc m = (Exercise -> m [(Day, (Reps, Proficiency))])
 type SuggestionFunc = ([DidThis] -> TryThis)
 
