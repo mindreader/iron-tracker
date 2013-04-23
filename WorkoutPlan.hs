@@ -21,7 +21,7 @@ import qualified Weight.PlateCalc as PC
 import Weight.Log
 import Weight.Formulas
 
-data WorkoutPlan = Plan [WorkoutStep] deriving Show
+data WorkoutPlan = Plan [WorkoutStep] deriving (Show, Eq)
 
 
 data WorkoutStep =
@@ -39,7 +39,7 @@ data WorkoutStep =
   BodyWeightExercise {
     _sExercise :: Exercise,
     _sReps     :: Reps
-  } deriving Show
+  } deriving (Show, Eq)
 
 type PlateOrder = [PO.Plate]
 type HistFunc m = (Exercise -> m [(Day, (Reps, Proficiency))])
@@ -112,12 +112,18 @@ average xs = ceiling $ (fromIntegral $ sum' xs) / (fromIntegral $ length xs)
   where
     sum' = foldr1 (+)
 
+{-
+test_workoutPlanEmpty :: Test
+test_workoutPlanEmpty =
+  let today = read "2013-04-23"
+  in TestCase $ assertEqual "workoutPlanEmpty" (plan' [] 12 (return []) (suggestNewRepWeight 12 today)) (return $ Plan [])
 
-prop_plan :: (Functor m, Monad m) => WeightState -> m WorkoutPlan
-prop_plan _ = plan' testWorkout 12 historyGetter undefined
+prop_workoutPlan :: (Functor m, Monad m) => WeightState -> m WorkoutPlan
+prop_workoutPlan _ = plan' testWorkout 12 historyGetter (suggestNewRepWeight 12 undefined)
   where
     testWorkout = [Exercise "bsquats" "barbell squats" 2 Barbell 1]
     historyGetter x = return []
+-}
 
 -- TODO move to general purpose plate library for cleaner interface.
 plateCalc2Order :: [PC.Plate] -> [PO.Plate]
