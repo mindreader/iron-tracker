@@ -72,7 +72,7 @@ plan' exers wCycle histf suggest todayf = Plan . L.reverse <$> foldM nextStep []
       return . reorderBarbells $ case exercise ^. eType of
         Dumbbell   ->
           -- Preliminary guestimate for dumbbells because I don't know how I want to do them yet.
-          let attemptWeight = maximum . map (view $ _2 . _2 . pWeight) . L.take 3 $ hist :: Weight
+          let attemptWeight = maximum . fmap (view $ _2 . _2 . pWeight) . L.take 3 $ hist :: Weight
           in DumbbellExercise exercise recentRepAverage attemptWeight : sofarSteps
 
         Bodyweight ->
