@@ -18,7 +18,7 @@ instance Default WeightState where
 
 -- How many days should go by without doing an exercise
 -- before you should just start over again at 15 reps.
-type CycleLength = Int
+type CycleLength = Integer
 
 data ExerciseType = Bodyweight | Dumbbell | Barbell deriving (Eq, Show)
 

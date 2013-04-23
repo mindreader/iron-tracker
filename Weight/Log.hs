@@ -35,14 +35,14 @@ logLift exer (attemptedreps, prof) = withDb $ \conn -> do
       "insert into weight_log (exercise_id, attempted_reps, reps, weight, whenit) values (?, ?,?,?,date('now','localtime','-5 hour'))"
       (exer ^. eExerciseId, attemptedreps, prof ^. pReps, fromRational (prof ^. pWeight) :: Double)
 
-allHistory :: MonadIO m => Exercise -> Int -> m [(Day, (Int, Proficiency))]
+allHistory :: MonadIO m => Exercise -> Int -> m [(Day, (Reps, Proficiency))]
 allHistory exer n = withDb $ \conn -> do
     logs <- query conn
       "select attempted_reps, reps, weight, whenit from weight_log where exercise_id = ? order by whenit desc limit ?"
       (exer ^. eExerciseId, n)
     return $ fmap (\(ar,r,w,d) -> (d,(ar, Pro r (toRational (w::Double))))) logs
 
-pastHistory :: MonadIO m => Exercise -> Int -> m [(Day, (Int, Proficiency))]
+pastHistory :: MonadIO m => Exercise -> Int -> m [(Day, (Reps, Proficiency))]
 pastHistory exer n = withDb $ \conn -> do
     logs <- query conn
       "select attempted_reps, reps, weight, whenit from weight_log where exercise_id = ? and whenit <> date('now','localtime','-5 hour') order by whenit desc limit ?"
