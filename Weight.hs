@@ -112,7 +112,7 @@ workoutMode = do
     workoutMode' lastPlateOrder ((exer,history,(TryThis tr tw)):xs) plates@(_:ps) = do
       liftIO $ printf "\n%s\n" (exer ^. eName)
       printHistory history
-      let thisPlateOrder = head . optimalPlateOrder lastPlateOrder $ plates
+      let thisPlateOrder = optimalPlateOrder lastPlateOrder $ plates
       liftIO $ case exer ^. eType of
         Barbell -> printf "You must do %s.\n" (formatRepsWeight tr tw (Just $ PO.displayPlates thisPlateOrder))
         Bodyweight -> printf "You must do whatever.\n"
