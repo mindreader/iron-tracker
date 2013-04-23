@@ -24,15 +24,16 @@ data WorkoutPlan = Plan [WorkoutStep] deriving Show
 data WorkoutStep =
   BarbellExercise {
     _sExercise :: Exercise,
-    _sLift :: PO.Lift
+    _sPlateOrder :: PO.Lift
   } |
   DumbbellExercise {
     _sExercise :: Exercise,
-    _sLift :: PO.Lift
+    _sReps :: Reps,
+    _sWeight :: Weight
   } |
   BodyWeightExercise {
     _sExercise :: Exercise,
-    _sInt :: Reps
+    _sReps :: Reps
   } deriving Show
 
 type HistFunc m = (Exercise -> m [(Day, (Int, Proficiency))])
