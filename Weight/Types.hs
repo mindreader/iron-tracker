@@ -47,8 +47,3 @@ makeLenses ''Proficiency
 
 instance Ord Exercise where
   compare e1 e2 = compare (e1 ^. eRank) (e2 ^. eRank)
-
-instance Ord Proficiency where
-  compare p1 p2 = compare (p1 ^. pWeight) (p2 ^. pWeight)
-
-
