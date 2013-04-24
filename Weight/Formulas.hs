@@ -2,6 +2,7 @@ module Weight.Formulas(
   TryThis(..), DidThis(..), suggestNewRepWeight, adjustProfByReps
 ) where
 
+import BasicPrelude
 
 import Data.Time
 

@@ -2,6 +2,8 @@ module Util(
   createStateDir, stateDir
 ) where
 
+import BasicPrelude
+
 import System.Directory (getHomeDirectory, createDirectoryIfMissing)
 
 
@@ -10,6 +12,6 @@ createStateDir = do
   createDirectoryIfMissing False dir
   
 stateDir = do
-  statedir <- fmap (++ "/.iron-tracker") $ getHomeDirectory
+  statedir <- fmap (<> "/.iron-tracker") $ getHomeDirectory
   return $ statedir
 

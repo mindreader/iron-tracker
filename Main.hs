@@ -1,14 +1,12 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
+
+import BasicPrelude
 
 import Util
 import Menu
 import Weight (runWeightRoutine)
 import Food (runFoodRoutine)
 
-
-import qualified Data.Text as T
 import Data.Default (def)
 
 import System.IO(stdout, stdin, hSetBuffering, BufferMode(..))
@@ -28,7 +26,7 @@ main = do
 mainLoop :: IO ()
 mainLoop = do
   command <- inputMenu (def { quitOption = True }) "Main Menu" $ [
-      (MMWeights,       "Weight Training"::T.Text),
+      (MMWeights,       "Weight Training"::Text),
       (MMFood,          "Food Tracking")]
 
   case command of

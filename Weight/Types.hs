@@ -1,20 +1,19 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell, GeneralizedNewtypeDeriving, TypeFamilies, FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, TypeFamilies, FlexibleInstances #-}
 module Weight.Types where
+
+import BasicPrelude
 
 
 import Control.Lens
-import qualified Data.Text as T
-import qualified Data.Map as M
-import Control.Applicative
 import Data.Default
 
 -- !A collection of exercises that are known to exist.  A person will usually have selected only a subset of these at any given time.
 data WeightState = WS {
-  _exercises :: M.Map T.Text Exercise -- ^ indexed by their id
+  _exercises :: Map Text Exercise -- ^ indexed by their id
 } deriving (Show)
 
 instance Default WeightState where
-  def = WS M.empty
+  def = WS empty
 
 
 -- !How many days should go by without doing an exercise
@@ -24,8 +23,8 @@ type CycleLength = Integer
 data ExerciseType = Bodyweight | Dumbbell | Barbell deriving (Eq, Show)
 
 data Exercise = Exercise {
-  _eExerciseId :: T.Text,       -- ^ "bsquats"
-  _eName       :: T.Text,       -- ^ "Barbell Squats"
+  _eExerciseId :: Text,       -- ^ "bsquats"
+  _eName       :: Text,       -- ^ "Barbell Squats"
   _eMinReps    :: Int,          -- ^ minimum I am willing to do
   _eType       :: ExerciseType,
   _eRank       :: Float         -- ^ Determines where exercise will appear in workout (TODO get rid of this hack)

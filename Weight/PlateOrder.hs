@@ -1,15 +1,8 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 module Weight.PlateOrder (
 Plate(..),Lift,Workout,optimalPlateOrder, displayPlates
 ) where
--- module Main where
 
-import qualified Data.List as L
-import Control.Monad
-import Data.Set as S
-import Data.Function (on)
-import Control.Monad (sequence)
+import BasicPrelude
 
 data Plate = P45 | P25 | P10 | P5 | P2p5 deriving (Eq, Ord, Show)
 
@@ -40,7 +33,7 @@ displayPlates [] = "just the bar"
 displayPlates ps = dPlates ps
   where
     dPlates :: [Plate] -> String
-    dPlates = concat . L.intersperse "," . L.map dPlate
+    dPlates = concat . intersperse "," . fmap dPlate
     dPlate :: Plate -> String
     dPlate P45  = "45"
     dPlate P25  = "25"
@@ -54,7 +47,7 @@ testWorkout :: Workout
 testWorkout = [squats, gmorning, shrugs, bench, bentrow, overhead, curls, triceps]
 
 complexity :: Workout -> Integer
-complexity = product . L.map (fromIntegral . L.length)
+complexity = product . fmap (fromIntegral . length)
 
 
 pcost :: Plate -> Int
@@ -78,17 +71,17 @@ desireable _ = True
 -- WARNING - if there is a bodyweight exercise in middle of workout, that will jack up this algorithm
 --   (it will assume you intend to take all weight off bar for that exercise).
 optimalPlateOrder :: Lift -> Workout -> Lift
-optimalPlateOrder initialLift = head . minWorkout . (L.map (initialLift :)) . L.map (L.filter desireable) . allPossibleWorkouts . take 4
+optimalPlateOrder initialLift = head . minWorkout . (fmap (initialLift :)) . fmap (filter desireable) . allPossibleWorkouts . take 4
   where
     minWorkout :: [Workout] -> Workout
-    minWorkout xs = tail . snd . L.minimumBy (compare `on` fst) . reverse . zip (L.map wCost xs) $ xs
+    minWorkout xs = tail . snd . minimumBy (compare `on` fst) . reverse . zip (fmap wCost xs) $ xs
 
 -- Every possible combination of plate orderings given an initial set of plates per exercise.
 allPossibleWorkouts :: Workout -> [Workout]
-allPossibleWorkouts = sequence . L.map combinations
+allPossibleWorkouts = sequence . fmap combinations
   where
     combinations :: Ord a => [a] -> [[a]]
-    combinations = L.nub . L.permutations
+    combinations = nub . permutations
 
 -- Cost of switching plates in a workout from beginning to end.
 wCost :: Workout -> Int
@@ -99,10 +92,10 @@ wCost w = case w of
   where
     lCost :: Lift -> Lift -> Int
     lCost [] [] = 0
-    lCost [] y = sum' (L.map pcost y)
-    lCost x [] = sum' (L.map pcost x)
+    lCost [] y = sum' (fmap pcost y)
+    lCost x [] = sum' (fmap pcost x)
     lCost x'@(x:xs) y'@(y:ys) =  if x == y
       then lCost xs ys
-      else sum' (L.map pcost x') + sum' (L.map pcost y')
+      else sum' (fmap pcost x') + sum' (fmap pcost y')
 
-    sum' = L.foldl' (+) 0
+    sum' = foldl' (+) 0

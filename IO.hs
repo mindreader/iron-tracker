@@ -1,14 +1,15 @@
-{-# LANGUAGE OverloadedStrings, NoMonomorphismRestriction, TypeSynonymInstances, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
+{-# LANGUAGE  FlexibleInstances #-}
 module IO (
 prompt, pressAnyKey, printTable, pad, searchPrompt, yesnoPrompt, YNOpt(..),
 liftIO,MonadException,
 module Text.Printf.Mauke
 )  where 
 
+import BasicPrelude
+
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Safe (readMay, headMay)
-import Data.List as L (transpose)
 
 import System.IO (hFlush, stdout)
 import System.Console.Haskeline as Haskeline
@@ -20,35 +21,36 @@ import Text.Regex.Posix ((=~))
 instance PrintfArg TL.Text where
   embed = AStr . TL.unpack
 
-instance PrintfArg T.Text where
+instance PrintfArg Text where
   embed = AStr . T.unpack
 
 pressAnyKey :: MonadIO m => m ()
 pressAnyKey = liftIO $ printf "Press any key to continue\n" >> hFlush stdout >> getChar >> return ()
 
 class FromString a where
-  fromString :: String -> Maybe a
+  fromString' :: String -> Maybe a
 
 instance FromString Int where
-  fromString = readMay
+  fromString' = readMay
 
 instance FromString Integer where
-  fromString = readMay
+  fromString' = readMay
 
-instance FromString T.Text where
-  fromString = Just . T.pack
+instance FromString Text where
+  fromString' = Just . T.pack
 
 instance FromString String where
-  fromString = Just
+  fromString' = Just
 
 instance FromString Float where
-  fromString = Just . read
+  fromString' = readMay
 
 instance FromString Double where
-  fromString = Just . read
+  fromString' = readMay
 
 instance FromString Rational where
-  fromString = Just . toRational . read
+--  fromString' = Just . toRational . read
+  fromString' = readMay
 
 
 data YNOpt = DefYes | DefNo
@@ -64,7 +66,7 @@ prompt str = runInputT defaultSettings $ loop
       case mx of
         Nothing -> loop
         Just x -> do
-          case fromString x of
+          case fromString' x of
             Nothing -> loop
             Just x' -> return x'
 
@@ -76,21 +78,21 @@ testTable = [
   ["1234567","123","000000"]]
 -}
 
-printTable :: MonadIO m => [[String]] -> m ()
+printTable :: MonadIO m => [[Text]] -> m ()
 printTable tdata = do
-  let inverted = L.transpose tdata
-      colmaxlens = fmap (maximum . map length) $ inverted
+  let inverted = transpose tdata
+      colmaxlens = fmap (maximum . map T.length) $ inverted
   mapM_ println $ zip (cycle [colmaxlens]) tdata
   where
     println ([], _) = liftIO $ putStrLn ""
     println (_,[]) = liftIO $ putStrLn ""
     println ((len:ls),(x:xs)) = printcell len x >> println (ls, xs)
-    printcell len x = liftIO $ (putStr x >> putStr (replicate (len - length x + 1) ' '))
+    printcell len x = liftIO $ (putStr x >> putStr (T.replicate (len - T.length x + 1) " "))
 
 pad :: Int -> String -> String
-pad i str = str ++ replicate (i - length str) ' '
+pad i str = str <> replicate (i - length str) ' '
 
-searchPrompt :: MonadIO m => String -> [T.Text] -> m (Maybe T.Text)
+searchPrompt :: MonadIO m => String -> [Text] -> m (Maybe Text)
 searchPrompt promptLabel textPossibles = do
   let -- The \t prevents it from defaulting to space, which causes it to fail on any strings with spaces in them.
       completefunc = completeWord Nothing "\t" $ return . testWords
@@ -99,7 +101,7 @@ searchPrompt promptLabel textPossibles = do
     Nothing -> textPossibles
     Just searchTerm' -> map T.pack $ filter (=~ searchTerm') possibles
   where
-    possibles = map T.unpack textPossibles
+    possibles = fmap T.unpack textPossibles
     testWords :: String -> [Completion]
     testWords left = case filter (=~ left) possibles of
       [] -> []

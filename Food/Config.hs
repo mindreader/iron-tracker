@@ -1,20 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Food.Config(
   loadFoodConfig
 ) where
 
-import Control.Applicative
-import Control.Monad.Trans
-import Control.Monad.Trans.Maybe
+import BasicPrelude
 
 import Control.Lens
 
 import Data.Aeson (withObject)
 
-import qualified Data.Text as T
 import qualified Data.Map as M
 
-import Control.Monad (mzero)
 import Data.Yaml
 
 import Data.Default
@@ -26,12 +21,12 @@ import Util
 
 instance FromJSON FoodState where
   parseJSON (Object v) = do
-    ingredients <- fmap (M.mapWithKey (\k v -> set iName k v)) $ v .: "ingredients" :: Parser (M.Map T.Text Ingredient)
+    ingredients <- fmap (M.mapWithKey (\k v -> set iName k v)) $ v .: "ingredients" :: Parser (M.Map Text Ingredient)
     -- To facilitate the numerous amounts of foods that are just an ingredient, as well as piecemeal eating of things that
     -- are not really actual recipes, all ingredients will be listed with ingredient: prepended to the map of recipes.
-    let ingredientsAsFood = M.mapKeys (\key -> "ingredient: " `T.append` key) . M.map (\ing -> [ing ^. iName]) $ ingredients
+    let ingredientsAsFood = M.mapKeys (\key -> "ingredient: " <> key) . fmap (\ing -> [ing ^. iName]) $ ingredients
 
-    foods <- v .: "foods" :: Parser (M.Map T.Text [T.Text])
+    foods <- v .: "foods" :: Parser (M.Map Text [Text])
 
     (cals, prot, fat, carbs) <- v .: "daily requirements" >>= withObject "daily requirements object" (\v ->
       (,,,) <$> v .:? "calories" <*> v .:? "protein" <*> v .:? "fat" <*> v .:? "carbs")
@@ -39,13 +34,13 @@ instance FromJSON FoodState where
     return $ FS (M.mapWithKey (namesToIngredients ingredients) (foods `M.union` ingredientsAsFood) ) (Req cals prot fat carbs)
   parseJSON _ = mzero
 
-namesToIngredients :: (M.Map T.Text Ingredient) -> T.Text -> [T.Text] -> Food
+namesToIngredients :: (M.Map Text Ingredient) -> Text -> [Text] -> Food
 namesToIngredients ingredients foodName = Food foodName . loop
   where
     loop [] = []
     loop (ingName:is) = case M.lookup ingName ingredients of
       Just ing -> ing : loop is
-      Nothing -> error $ "Ingredient " ++ T.unpack ingName ++ " does not exist in your food config file."
+      Nothing -> error . textToString $ "Ingredient " <> ingName <> " does not exist in your food config file."
 
 instance FromJSON Ingredient where
   parseJSON (Object v) = do
@@ -60,5 +55,5 @@ instance FromJSON Ingredient where
 loadFoodConfig :: IO FoodState
 loadFoodConfig = do
   statedir <- liftIO stateDir
-  fmap (maybe def id) $ decodeFile (statedir ++ "/food.yaml")
+  fmap (maybe def id) $ decodeFile (statedir <> "/food.yaml")
 

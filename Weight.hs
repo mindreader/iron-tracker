@@ -1,21 +1,21 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving #-}
 module Weight(
   runWeightRoutine
 ) where
 
+import BasicPrelude
+
 import Control.Lens
 import Data.Time (Day)
 
-import qualified Data.Text as T
-import qualified Data.Map as M
-import qualified Data.List as L
+import qualified Data.Text as T (length)
+import qualified Data.Map as M (elems)
 
 import Data.Default
 import Safe (headMay)
 
 
 import Control.Monad.State
-import Control.Applicative
 
 import Weight.Formulas
 import Weight.Config
@@ -27,8 +27,6 @@ import WorkoutPlan
 
 import Menu
 import IO
-
-import Control.Exception (bracket_)
 
 data WeightMenuCommand = MWWorkoutMode | MWWorkoutStatus | MWAdjustWorkoutReps | MWUpdate | MWInclude | MWDisInclude deriving (Eq, Ord)
 
@@ -73,7 +71,7 @@ mainLoop = do
     menuCrud = [
       (MWWorkoutMode,       "Perform a Workout"),
       (MWAdjustWorkoutReps, "Print workout with new rep count"),
-      (MWWorkoutStatus,     "Current workout proficiencies"::T.Text),
+      (MWWorkoutStatus,     "Current workout proficiencies"::Text),
       (MWUpdate,            "Update an exercise in current workout"),
       (MWInclude,           "Add exercise to workout"),
       (MWDisInclude,        "Remove exercise from workout")]
@@ -111,7 +109,7 @@ workoutMode = do
 
     printHistory :: History -> App ()
     printHistory history = do
-      mapM_ printHistory' (L.reverse history)
+      mapM_ printHistory' (reverse history)
       where
         printHistory' (day, (attempted,pro)) = liftIO $ printf " %s : tried %d did %s\n" (show day) attempted (formatRepsWeight (pro ^. pReps) (pro ^. pWeight) Nothing)
 
@@ -126,14 +124,14 @@ inputProficiency = Pro <$> inputReps <*> inputWeight
 
 
 exerciseList = use (weightState . exercises . to M.elems)
-currentWorkout = fmap L.sort $ exerciseList >>= dbFilterCurrentWorkout
+currentWorkout = fmap sort $ exerciseList >>= dbFilterCurrentWorkout
 
 printWorkout :: (Proficiency -> Proficiency) -> App ()
 printWorkout adjuster = do
   exers <- currentWorkout
-  let maxExerNameLen = T.length $ L.maximumBy (\x y -> compare (T.length (x ^. eName)) (T.length (y ^. eName))) exers ^. eName
+  let maxExerNameLen = T.length $ maximumBy (\x y -> compare (T.length (x ^. eName)) (T.length (y ^. eName))) exers ^. eName
   when (null exers) $ liftIO $ printf "You do not have any exercises set up in your workout.\n"
-  mapM exerWithProf exers >>= mapM_ (liftIO . putStrLn . formatLine maxExerNameLen)
+  mapM exerWithProf exers >>= mapM_ (liftIO . putStrLn . show . formatLine maxExerNameLen)
   where
     exerWithProf :: Exercise -> App (Either Exercise (Day, Proficiency, Exercise))
     exerWithProf exer = do
@@ -141,13 +139,18 @@ printWorkout adjuster = do
       case headMay last of
         Nothing          -> return . Left $ exer
         Just (day, (_, prof)) -> return . Right $ (day, adjuster prof, exer)
-        
-    formatLine namelen (Left exercise) = printf ("%" ++ show namelen ++ "s : (never done)") (exercise ^. eName)
-    formatLine namelen (Right (date, Pro reps 0.0, exercise)) = printf ("%" ++ show namelen ++ "s : %d") (exercise ^. eName) reps
-    formatLine namelen (Right (date, Pro reps weight, exercise)) = printf ("%" ++ show namelen ++ "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (PC.displayPlateCalc PC.Barbell weight)
 
-rTrimZeros :: String -> String
-rTrimZeros = L.reverse . L.dropWhile (=='.') . L.dropWhile (== '0') . L.reverse
+
+    formatLine :: Int -> Either Exercise (Day, Proficiency, Exercise) -> String
+    formatLine namelen (Left exercise) = printf
+      ("%" <> (textToString . show $ namelen) <> "s : (never done)") (exercise ^. eName)
+    formatLine namelen (Right (date, Pro reps 0.0, exercise)) = printf
+      ("%" <> (textToString . show $ namelen) <> "s : %d") (exercise ^. eName) reps
+    formatLine namelen (Right (date, Pro reps weight, exercise)) = printf
+      ("%" <> (textToString . show $ namelen) <> "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (PC.displayPlateCalc PC.Barbell weight)
+
+rTrimZeros :: Text -> String
+rTrimZeros = reverse . dropWhile (=='.') . dropWhile (== '0') . reverse . read
 
 adjustWorkoutByReps :: App ()
 adjustWorkoutByReps = do
@@ -169,7 +172,7 @@ addExerciseToWorkout :: App ()
 addExerciseToWorkout = do
   exercises <- exerciseList
   workout <- currentWorkout
-  let exercisesnotinworkout = exercises L.\\ workout
+  let exercisesnotinworkout = exercises \\ workout
   mexer <- liftIO $ inputMenu def "Exercises Not In Workout" exercisesnotinworkout
   case mexer of
     MenuError -> liftIO $ printf "You already have every known exercise in your workout.\n"

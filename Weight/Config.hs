@@ -1,10 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Weight.Config(
   loadWeightConfig
 ) where
 
+import BasicPrelude
+
 import qualified Data.HashMap.Strict as HM
-import qualified Data.Text as T
 import qualified Data.Map as M
 
 import Control.Monad
@@ -19,11 +19,11 @@ import Util
 instance FromJSON WeightState where
   parseJSON (Object v) = do
     -- TODO future verion of containers has M.traverseWithKey which would greatly simplify this function.
-    hashmap <- v .: "exercises" >>= HM.traverseWithKey parseExerciseWithKey :: Parser (HM.HashMap T.Text Exercise)
+    hashmap <- v .: "exercises" >>= HM.traverseWithKey parseExerciseWithKey :: Parser (HM.HashMap Text Exercise)
     return $ WS $ M.fromList . HM.toList $ hashmap
   parseJSON _ = mzero
 
-parseExerciseWithKey :: T.Text -> Value -> Parser Exercise
+parseExerciseWithKey :: Text -> Value -> Parser Exercise
 parseExerciseWithKey k (Object v) = do
   name       <- v .:  "name"
   minreps    <- v .:? "minreps"    .!= 4
@@ -44,4 +44,4 @@ parseExerciseWithKey _ _ = mzero
 loadWeightConfig :: IO WeightState
 loadWeightConfig = do
   statedir <- stateDir
-  fmap (maybe def id) $ decodeFile (statedir ++ "/weight.yaml")
+  fmap (maybe def id) $ decodeFile (statedir <> "/weight.yaml")

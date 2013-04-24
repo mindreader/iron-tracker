@@ -1,14 +1,13 @@
-{-# LANGUAGE TemplateHaskell, OverloadedStrings, GeneralizedNewtypeDeriving, BangPatterns #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, BangPatterns #-}
 module Food where
 
-import Control.Lens
+import BasicPrelude
 
-import Control.Applicative
+import Control.Lens
 
 
 import Control.Monad.State
 import Control.Monad.Trans (lift, liftIO)
-import Control.Monad (when)
 
 import qualified Data.Text as T hiding (find)
 import qualified Data.Text.IO as TIO (putStrLn)
@@ -17,7 +16,6 @@ import Data.List (find, sortBy)
 import Data.Function (on)
 import qualified Data.Map as M
 import Data.Default (def)
-import Data.Monoid
 import Data.Maybe (isJust)
 
 import IO

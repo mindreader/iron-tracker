@@ -1,20 +1,17 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 module Weight.Log(
   logLift, pastHistory, allHistory, dbFilterCurrentWorkout, dbAddExerciseToWorkout, dbRemExerciseFromWorkout
 ) where
+
+import BasicPrelude
 
 import Data.Time
 
 import Database.SQLite.Simple
 import Database.SQLite.Simple.FromRow
 
-
-import Control.Applicative
 import Control.Lens
-import Control.Exception (bracket)
 
 import Weight.Types
-import Control.Monad.Trans (liftIO, MonadIO)
 
 import Util
 
@@ -24,7 +21,7 @@ instance FromRow Proficiency where
 withDb :: MonadIO m => (Connection -> IO a) -> m a
 withDb st = do
   statedir <- liftIO $ stateDir
-  liftIO $ bracket (open (statedir++"/weight.db")) close st
+  liftIO $ bracket (open (statedir <> "/weight.db")) close st
 
 logLift :: MonadIO m => Exercise -> (Int, Proficiency) -> m ()
 logLift exer (attemptedreps, prof) = withDb $ \conn -> do

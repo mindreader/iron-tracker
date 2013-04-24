@@ -1,36 +1,37 @@
 module Weight.PlateCalc(displayPlateCalc,Plate(..),plateCalc, Plates(Plates,getPlates), BarType(..)) where
 
-import Data.List (intersperse)
+import BasicPrelude
+
 
 newtype Plates = Plates {
   getPlates :: [Plate]
 }
 
-instance Show Plates where
-  show = displayPlates
+--instance Show Plates where
+--  show = displayPlates
 
 data BarType = Barbell | Dumbbell deriving (Show)
 
 data Plate = P45 Int | P25 Int | P10 Int | P5 Int | P2p5 Int | TooLight deriving Show
 
-displayPlateCalc :: BarType -> Rational -> String
+displayPlateCalc :: BarType -> Rational -> Text
 displayPlateCalc ctype = displayPlates . plateCalc ctype
 
 
-displayPlates :: Plates -> String
+displayPlates :: Plates -> Text
 displayPlates (Plates []) = "just the bar"
 displayPlates (Plates ps) = dPlates ps
   where
-    dPlates :: [Plate] -> String
+    dPlates :: [Plate] -> Text
     dPlates = concat . intersperse "," . map dPlate
 
-    dPlate :: Plate -> String
+    dPlate :: Plate -> Text
     dPlate (TooLight) = "less than a bar"
-    dPlate (P45  n) = "45x"  ++ show n
-    dPlate (P25  n) = "25x"  ++ show n
-    dPlate (P10  n) = "10x"  ++ show n
-    dPlate (P5   n) = "5x"   ++ show n
-    dPlate (P2p5 n) = "2.5x" ++ show n
+    dPlate (P45  n) = "45x"  <> show n
+    dPlate (P25  n) = "25x"  <> show n
+    dPlate (P10  n) = "10x"  <> show n
+    dPlate (P5   n) = "5x"   <> show n
+    dPlate (P2p5 n) = "2.5x" <> show n
 
 
 

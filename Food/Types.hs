@@ -2,11 +2,9 @@
 
 module Food.Types where
 
-import Control.Lens
-import qualified Data.Text as T
-import qualified Data.Map as M
+import BasicPrelude
 
-import Data.Monoid
+import Control.Lens
 
 import Data.Default
 
@@ -22,19 +20,19 @@ instance Monoid Nutrition where
   mappend (Nut (!c1, !p1, !f1, !ca1)) (Nut (c2, p2, f2, ca2)) = Nut (c1 + c2, p1 + p2, f1 +f2, ca1 + ca2)
 
 data Ingredient = Ing {
-  _iName :: T.Text,
+  _iName :: Text,
   _iServingSize :: Maybe Int, -- serving size in grams
   _iServingNumber :: Maybe Int, -- typical number eaten
   _iCalories, _iProtein, _iFat, _iCarbs :: Int
 } deriving Show
 
 data Food = Food {
-  _fName :: T.Text,
+  _fName :: Text,
   _fIngredients :: [Ingredient]
 } deriving Show
 
 data FoodState = FS {
-  _foods :: M.Map T.Text Food,
+  _foods :: Map Text Food,
   _requirements :: Requirements
 } deriving (Show)
 
@@ -46,7 +44,7 @@ data Requirements = Req {
 } deriving (Show)
 
 instance Default FoodState where
-  def = FS M.empty (Req Nothing Nothing Nothing Nothing)
+  def = FS empty (Req Nothing Nothing Nothing Nothing)
 
 
 makeLenses ''Ingredient

@@ -1,10 +1,9 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell, ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell, ScopedTypeVariables #-}
 module WorkoutPlan (workoutPlan, WorkoutPlan(..), WorkoutStep(..)) where
 
+import BasicPrelude
 
 import Control.Monad (foldM)
-import Control.Applicative
-import Data.Monoid
 
 import Data.Time
 
@@ -12,8 +11,6 @@ import Control.Lens
 
 
 import qualified Data.Map as M
-import qualified Data.Text as T
-import Data.List as L
 
 import Weight.Types
 import qualified Weight.PlateOrder as PO
@@ -51,14 +48,14 @@ makeLenses ''WorkoutStep
 
 workoutPlan :: WeightState -> CycleLength -> IO WorkoutPlan
 workoutPlan ws cycle = do
-  currentWorkout <- L.sort <$> dbFilterCurrentWorkout (ws ^. exercises . to M.elems)
+  currentWorkout <- sort <$> dbFilterCurrentWorkout (ws ^. exercises . to M.elems)
   today <- localDay . zonedTimeToLocalTime <$> getZonedTime
   plan' currentWorkout cycle (flip pastHistory 5) (suggestNewRepWeight cycle today)
 
 
 
 plan' :: forall m. (Functor m, Monad m) => [Exercise] -> CycleLength -> HistFunc m -> SuggestionFunc -> m WorkoutPlan
-plan' exers wCycle histf suggestf = Plan . L.reverse <$> foldM nextStep [] exers
+plan' exers wCycle histf suggestf = Plan . reverse <$> foldM nextStep [] exers
   where
 
     nextStep :: [WorkoutStep] -> -- Workout up to this point
@@ -67,12 +64,12 @@ plan' exers wCycle histf suggestf = Plan . L.reverse <$> foldM nextStep [] exers
 
     nextStep sofarSteps exercise = do
       hist <- histf exercise
-      let recentRepAverage = average . fmap (view $ _2 . _2 . pReps) . L.take 3 $ hist :: Reps
+      let recentRepAverage = average . fmap (view $ _2 . _2 . pReps) . take 3 $ hist :: Reps
 
       return . reorderBarbells $ case exercise ^. eType of
         Dumbbell ->
           -- Preliminary guestimate for dumbbells because I don't know how I want to do them yet.
-          let attemptWeight = maximum . fmap (view $ _2 . _2 . pWeight) . L.take 3 $ hist :: Weight
+          let attemptWeight = maximum . fmap (view $ _2 . _2 . pWeight) . take 3 $ hist :: Weight
           in DumbbellExercise exercise recentRepAverage attemptWeight : sofarSteps
 
         Bodyweight ->
@@ -101,7 +98,7 @@ plan' exers wCycle histf suggestf = Plan . L.reverse <$> foldM nextStep [] exers
         reorderBarbells' :: [PO.Plate] -> [WorkoutStep] -> [WorkoutStep]
         reorderBarbells' _ [] = []
         reorderBarbells' prev (step@(BarbellExercise {}):xs) =
-          let current = step { _sPlateOrder = (PO.optimalPlateOrder prev (fmap (view sPlateOrder) . L.filter isBarbell $ (step:xs))) } :: WorkoutStep
+          let current = step { _sPlateOrder = (PO.optimalPlateOrder prev (fmap (view sPlateOrder) . filter isBarbell $ (step:xs))) } :: WorkoutStep
           in current : reorderBarbells' (current ^. sPlateOrder) xs
 
         reorderBarbells' prev (step:xs) = step:reorderBarbells' prev xs

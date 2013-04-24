@@ -1,26 +1,23 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances, TypeFamilies #-}
 
 module Menu where
 
+import BasicPrelude
 
 import qualified Data.Text as T
 
-import Data.Maybe
 import qualified Data.Map as M
 import Safe (atMay)
 import Data.Default
 
-import Control.Monad (when)
-import Control.Monad.Trans (MonadIO)
-
 import Data.Char (isAlphaNum)
 import Data.List (findIndex)
 
-import IO
+import Control.Lens
 
+import IO
 import Weight.Types
 
-import Control.Lens
 
 class Menuable a where
   type MenuKey a
@@ -85,4 +82,4 @@ inputMenu opts title menuable = liftIO $ loop
       mapM_ printLine (zip inputChars items)
 
     printLine (i, (MenuItem _ label)) = printf "%c. %s\n" i label
-    inputChars = filter (/= 'q') $ filter isAlphaNum $ ['1'..'9'] ++ ['0'] ++ ['a'..'z'] ++ ['A'..'Z']
+    inputChars = filter (/= 'q') $ filter isAlphaNum $ ['1'..'9'] <> ['0'] <> ['a'..'z'] <> ['A'..'Z']

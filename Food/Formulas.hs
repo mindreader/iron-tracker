@@ -1,13 +1,13 @@
 {-# LANGUAGE BangPatterns #-}
 module Food.Formulas where
 
+import BasicPrelude
 import Food.Types
 
-import Data.Monoid (mappend)
 
 -- cals = 9*f + 4*p + 4*c
 -- c = (cals - 9*f - 4*p) / 4
---
+
 class Scaleable a where
   scaleBy :: Float -> a -> a
 
