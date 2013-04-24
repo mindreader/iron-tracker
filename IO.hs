@@ -81,7 +81,7 @@ testTable = [
 printTable :: MonadIO m => [[Text]] -> m ()
 printTable tdata = do
   let inverted = transpose tdata
-      colmaxlens = fmap (maximum . map T.length) $ inverted
+      colmaxlens = fmap (maximum . fmap T.length) $ inverted
   mapM_ println $ zip (cycle [colmaxlens]) tdata
   where
     println ([], _) = liftIO $ putStrLn ""
@@ -99,11 +99,11 @@ searchPrompt promptLabel textPossibles = do
   searchTerm <- liftIO $ runInputT (setComplete completefunc defaultSettings) $ Haskeline.getInputLine (read promptLabel)
   return $ headMay $ take 25 $ case searchTerm of
     Nothing -> textPossibles
-    Just searchTerm' -> map show $ filter (=~ searchTerm') possibles
+    Just searchTerm' -> fmap show $ filter (=~ searchTerm') possibles
   where
     possibles = read <$> textPossibles
     testWords :: String -> [Completion]
     testWords left = case filter (=~ left) possibles of
       [] -> []
       [x] -> [Completion x x False]
-      xs -> map (\str -> Completion left str False) xs
+      xs -> fmap (\str -> Completion left str False) xs

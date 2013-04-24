@@ -27,7 +27,7 @@ calcCarbs cals prot fat = round $ (fromIntegral cals - (fromIntegral fat * 9 + f
 ingredients2Nutrition :: (Ingredient -> IO (Int,Nutrition)) -> [Ingredient] -> IO (Int, Nutrition)
 ingredients2Nutrition f ingredients = do
   nutrinfo <- mapM f ingredients :: IO [(Int, Nutrition)]
-  let nut = foldr mappend (Nut (0,0,0,0)) $ map snd nutrinfo
+  let nut = foldr mappend (Nut (0,0,0,0)) $ fmap snd nutrinfo
       -- If there is only one ingredient and it has a count, return that count as a number
       -- otherwise assume I ate only one of this whole recipe.
       howmany = case nutrinfo of 

@@ -84,7 +84,7 @@ mainLoop = do
 foodInfo :: App (Maybe (T.Text, Int, Float, Nutrition))
 foodInfo = do
   foods <- use (foodState . foods)
-  mfood <- liftIO $ searchPrompt "Food Search:" $ (sortBy (compare `on` T.length) . map (view fName) . M.elems) foods
+  mfood <- liftIO $ searchPrompt "Food Search:" $ (sortBy (compare `on` T.length) . fmap (view fName) . M.elems) foods
   case mfood of
     Just foodName -> case M.lookup foodName foods of
       Just food@(Food name ingredients) -> do

@@ -23,7 +23,7 @@ displayPlates (Plates []) = "just the bar"
 displayPlates (Plates ps) = dPlates ps
   where
     dPlates :: [Plate] -> Text
-    dPlates = concat . intersperse "," . map dPlate
+    dPlates = mconcat . intersperse "," . fmap dPlate
 
     dPlate :: Plate -> Text
     dPlate (TooLight) = "less than a bar"

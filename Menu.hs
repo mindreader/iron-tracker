@@ -26,12 +26,12 @@ class Menuable a where
 
 instance Menuable [Exercise] where
   type MenuKey [Exercise] = Exercise
-  toMenu = toMenu .  map (\x -> (x,x ^. eName))
+  toMenu = toMenu .  fmap (\x -> (x,x ^. eName))
 
 
 instance Menuable [T.Text] where
   type MenuKey [T.Text] = T.Text
-  toMenu = toMenu .  map (\x -> (x,x))
+  toMenu = toMenu .  fmap (\x -> (x,x))
 
 instance (Ord a) => Menuable [(a, T.Text)] where
   type MenuKey [(a, T.Text)] = a
