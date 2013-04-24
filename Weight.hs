@@ -14,7 +14,6 @@ import qualified Data.Map as M (elems)
 import Data.Default
 import Safe (headMay)
 
-
 import Control.Monad.State
 
 import Weight.Formulas

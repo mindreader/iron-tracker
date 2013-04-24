@@ -5,25 +5,15 @@ import BasicPrelude
 
 import Control.Lens
 
-
 import Control.Monad.State
-import Control.Monad.Trans (lift, liftIO)
 
-import qualified Data.Text as T hiding (find)
-import qualified Data.Text.IO as TIO (putStrLn)
+import qualified Data.Text as T (length)
 
-import Data.List (find, sortBy)
-import Data.Function (on)
-import qualified Data.Map as M
+import qualified Data.Map as M (lookup, elems)
 import Data.Default (def)
-import Data.Maybe (isJust)
 
 import IO
 import Menu
-
-import Safe
-
-import System.Console.Haskeline (MonadException, InputT, runInputT, defaultSettings)
 
 import Food.Types
 import Food.Config
@@ -74,14 +64,14 @@ mainLoop = do
     menuCrud = [
       (MFStatsToday,     "Today's Statistics"),
       (MFStatsYesterday, "Yesterdays's Statistics"),
-      (MFInfo,           "Food Information"::T.Text),
+      (MFInfo,           "Food Information"::Text),
       (MFLog,            "Recent Food History"),
       (MFEatToday,       "Eat Something"),
       (MFEatYesterday,   "Eat Something Yesterday")]
 
 
 -- Get info about calorie counts in a food
-foodInfo :: App (Maybe (T.Text, Int, Float, Nutrition))
+foodInfo :: App (Maybe (Text, Int, Float, Nutrition))
 foodInfo = do
   foods <- use (foodState . foods)
   mfood <- liftIO $ searchPrompt "Food Search:" $ (sortBy (compare `on` T.length) . fmap (view fName) . M.elems) foods
@@ -144,7 +134,7 @@ foodStatsYesterday = foodStatsWhenever 1
 
 foodStatsWhenever :: Int -> App ()
 foodStatsWhenever daysago = do
-  hist <- foodLogDay daysago :: App [(T.Text, Nutrition, Int, Float)]
+  hist <- foodLogDay daysago :: App [(Text, Nutrition, Int, Float)]
   let nuts      = fmap (view _2) hist :: [Nutrition]
       (Nut (cals,prot,fat,carbs)) = foldr mappend mempty nuts
   liftIO $ do
@@ -159,7 +149,7 @@ foodStatsWhenever daysago = do
     printf " Carbs    : %d\n" carbs
 
   where
-    showRow :: (T.Text, Nutrition, Int, Float) -> IO ()
+    showRow :: (Text, Nutrition, Int, Float) -> IO ()
     showRow (name,_,howmany,howmuch) | howmany == 1 && howmuch == 1.0 = printf " %s\n" name
                                      | howmany /= 1 && howmuch == 1.0 = printf " %s (%d)\n" name howmany
                                      | howmany == 1 && howmuch /= 1.0 = printf " %s (%d%%)\n" name (floor $ howmuch * 100 :: Int)
