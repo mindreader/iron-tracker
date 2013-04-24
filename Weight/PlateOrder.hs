@@ -28,13 +28,13 @@ main =  blah [] testWorkout
         this:blah this (tail stuff)
 -}
 
-displayPlates :: Lift -> String
+displayPlates :: Lift -> Text
 displayPlates [] = "just the bar"
 displayPlates ps = dPlates ps
   where
-    dPlates :: [Plate] -> String
-    dPlates = concat . intersperse "," . fmap dPlate
-    dPlate :: Plate -> String
+    dPlates :: [Plate] -> Text
+    dPlates = mconcat . intersperse "," . fmap dPlate
+    dPlate :: Plate -> Text
     dPlate P45  = "45"
     dPlate P25  = "25"
     dPlate P10  = "10"

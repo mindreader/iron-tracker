@@ -91,7 +91,7 @@ foodInfo = do
         (howmany,nutrition) <- liftIO $ ingredients2Nutrition queryIngredient ingredients
         percent <- if any (\ing -> isJust $ ing ^. iServingNumber) ingredients
           then return 1.0
-          else fmap ((/ 100) . fromIntegral) $ (liftIO (prompt $ printf "What percentage of this meal did you just eat? (100):" :: IO Int))
+          else (/ 100) . fromIntegral <$> (liftIO (prompt . show $ (printf "What percentage of this meal did you just eat? (100):" :: String) :: IO Int))
         showFood food $ scaleBy percent nutrition
         return $ Just $ (name, howmany, percent, scaleBy percent $ nutrition)
       Nothing -> return Nothing
@@ -110,12 +110,12 @@ queryIngredient (Ing name sSize sNum cals prot fat carbs) = do
 
     scale <- case sSize of
       Just sSize' -> do
-        grams <- prompt $ printf "How many grams of %s? (%d):" name sSize' :: IO Int
+        grams <- (prompt . show $ (printf "How many grams of %s? (%d):" name sSize' :: String)) :: IO Int
         return $ (fromIntegral grams) / (fromIntegral sSize')
       Nothing -> return (1.0 :: Float)
 
     multiply <- case sNum of
-      Just sNum' -> prompt $ printf "How many %s did you eat? (%d):" name sNum'
+      Just sNum' -> prompt . show $ (printf "How many %s did you eat? (%d):" name sNum' :: String) :: IO Int
       Nothing -> return (1 :: Int)
 
     return $ (multiply, scaleBy scale . scaleBy (fromIntegral multiply) $ Nut (cals, prot, fat, carbs))

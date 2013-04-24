@@ -101,11 +101,11 @@ workoutMode = do
     beforeStep step = liftIO (printf "%s" (_eName . _sExercise $ step)) >> liftIO (pastHistory (_sExercise step) 5) >>= printHistory
     afterStep step = inputReps >>= (\reps -> logLift (_sExercise step) (_sReps step, Pro reps (_sWeight step)))
 
-    formatRepsWeight :: Reps -> Weight -> (Maybe String) -> String
+    formatRepsWeight :: Reps -> Weight -> (Maybe Text) -> Text
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
-    formatRepsWeight reps 0.0 _ = printf "%d" reps
-    formatRepsWeight reps weight (Just plates) = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) plates
-    formatRepsWeight reps weight Nothing = printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (PC.displayPlateCalc PC.Barbell weight)
+    formatRepsWeight reps 0.0 _ = show $ (printf "%d" reps :: String)
+    formatRepsWeight reps weight (Just plates) = show $ (printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) plates :: String)
+    formatRepsWeight reps weight Nothing = show $ (printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (PC.displayPlateCalc PC.Barbell weight) :: String)
 
     printHistory :: History -> App ()
     printHistory history = do
