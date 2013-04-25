@@ -7,6 +7,8 @@ import BasicPrelude
 import Control.Lens
 import Data.Default
 
+import Weight.PlateOrder.Types as PO
+
 -- !A collection of exercises that are known to exist.  A person will usually have selected only a subset of these at any given time.
 data WeightState = WS {
   _exercises :: Map Text Exercise -- ^ indexed by their id

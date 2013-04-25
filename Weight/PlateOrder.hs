@@ -1,14 +1,12 @@
 module Weight.PlateOrder (
-Plate(..),Lift,Workout,optimalPlateOrder, displayPlates
+Plate(..),PlateOrder,Workout,optimalPlateOrder, displayPlates
 ) where
 
 import BasicPrelude
 
-data Plate = P45 | P25 | P10 | P5 | P2p5 deriving (Eq, Ord, Show)
+import Weight.PlateOrder.Types
 
-type Lift = [Plate]
-type Workout = [Lift]
-
+type Workout = [PlateOrder]
 
 squats   = [P45,P45,P5]
 gmorning = [P45,P25,P10,P5]
@@ -28,7 +26,7 @@ main =  blah [] testWorkout
         this:blah this (tail stuff)
 -}
 
-displayPlates :: Lift -> Text
+displayPlates :: PlateOrder -> Text
 displayPlates [] = "just the bar"
 displayPlates ps = dPlates ps
   where
@@ -58,7 +56,7 @@ pcost P5   = 12
 pcost P2p5 = 10
 
 
-desireable :: Lift -> Bool
+desireable :: PlateOrder -> Bool
 -- desireable (P45:P45:P45:P45:xs) = True  These are way out of my range, no point in checking
 -- desireable (P45:P45:P45:P45:P45:xs) = True
 -- desireable (_:_:P45:P45:_) = False
@@ -70,7 +68,7 @@ desireable _ = True
 -- Limit to 4 workouts to ease computation.
 -- WARNING - if there is a bodyweight exercise in middle of workout, that will jack up this algorithm
 --   (it will assume you intend to take all weight off bar for that exercise).
-optimalPlateOrder :: Lift -> Workout -> Lift
+optimalPlateOrder :: PlateOrder -> Workout -> PlateOrder
 optimalPlateOrder initialLift = head . minWorkout . (fmap (initialLift :)) . fmap (filter desireable) . allPossibleWorkouts . take 4
   where
     minWorkout :: [Workout] -> Workout
@@ -90,7 +88,7 @@ wCost w = case w of
   (x:y:xs) -> lCost x y + wCost (y:xs)
   _        -> 0
   where
-    lCost :: Lift -> Lift -> Int
+    lCost :: PlateOrder -> PlateOrder -> Int
     lCost [] [] = 0
     lCost [] y = sum' (fmap pcost y)
     lCost x [] = sum' (fmap pcost x)
