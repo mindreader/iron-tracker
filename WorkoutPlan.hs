@@ -18,32 +18,8 @@ import qualified Weight.PlateCalc as PC
 import Weight.Log
 import Weight.Formulas
 
-data WorkoutPlan = Plan [WorkoutStep] deriving (Show, Eq)
-
-
-data WorkoutStep =
-  BarbellExercise {
-    _sExercise   :: Exercise,
-    _sReps       :: Reps,
-    _sWeight     :: Weight,
-    _sPlateOrder :: PlateOrder
-  } |
-  DumbbellExercise {
-    _sExercise :: Exercise,
-    _sReps     :: Reps,
-    _sWeight   :: Weight
-  } |
-  BodyWeightExercise {
-    _sExercise :: Exercise,
-    _sReps     :: Reps
-  } deriving (Show, Eq)
-
-type PlateOrder = [PO.Plate]
 type HistFunc m = (Exercise -> m [(Day, (Reps, Proficiency))])
 type SuggestionFunc = ([DidThis] -> TryThis)
-
-makeLenses ''WorkoutPlan
-makeLenses ''WorkoutStep
 
 
 workoutPlan :: WeightState -> CycleLength -> IO WorkoutPlan
@@ -97,9 +73,11 @@ plan' exers wCycle histf suggestf = Plan . reverse <$> foldM nextStep [] exers
       where
         reorderBarbells' :: [PO.Plate] -> [WorkoutStep] -> [WorkoutStep]
         reorderBarbells' _ [] = []
-        reorderBarbells' prev (step@(BarbellExercise {}):xs) =
-          let current = step { _sPlateOrder = (PO.optimalPlateOrder prev (fmap (view sPlateOrder) . filter isBarbell $ (step:xs))) } :: WorkoutStep
-          in current : reorderBarbells' (current ^. sPlateOrder) xs
+        reorderBarbells' prev (step@(BarbellExercise e r w po):xs) =
+          let
+            curPlateOrder = PO.optimalPlateOrder prev (fmap (\(BarbellExercise _ _ _ po) -> po) . filter isBarbell $ (step:xs))
+            current = BarbellExercise e r w curPlateOrder
+          in current : reorderBarbells' curPlateOrder xs
 
         reorderBarbells' prev (step:xs) = step:reorderBarbells' prev xs
 

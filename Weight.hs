@@ -85,10 +85,16 @@ workoutMode = do
   cycle <- use wCycle
   (Plan steps) <- liftIO $ workoutPlan ws cycle
   forM_ steps $ \step -> do
-    beforeStep step
-    workoutStep step
-    afterStep step
-  liftIO $ printf "Workout complete.\n"
+
+    let (exer, reps, weight) = case step of
+          BodyWeightExercise e r  -> (e,r,0)
+          DumbbellExercise e r w  -> (e,r,w)
+          BarbellExercise e r w _ -> (e,r,w)
+
+    beforeStep exer
+    workoutStep step >> return ()
+    afterStep exer reps weight
+    liftIO $ printf "Workout complete.\n"
   where
     workoutStep (BarbellExercise exer reps weight plates) = do
       liftIO $ printf "You must do %s.\n" (formatRepsWeight reps weight (Just $ PO.displayPlates plates))
@@ -97,8 +103,8 @@ workoutMode = do
     workoutStep (BodyWeightExercise _ reps) = do
       liftIO $ printf "You must do %d reps.\n" reps
 
-    beforeStep step = liftIO (printf "%s" (_eName . _sExercise $ step)) >> liftIO (pastHistory (_sExercise step) 5) >>= printHistory
-    afterStep step = inputReps >>= (\reps -> logLift (_sExercise step) (_sReps step, Pro reps (_sWeight step)))
+    beforeStep exer = liftIO (printf "%s" (exer ^. eName)) >> liftIO (pastHistory exer 5) >>= printHistory
+    afterStep exer toldReps toldWeight = inputReps >>= (\newReps -> logLift exer (toldReps, Pro newReps toldWeight))
 
     formatRepsWeight :: Reps -> Weight -> (Maybe Text) -> Text
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
@@ -111,6 +117,7 @@ workoutMode = do
       mapM_ printHistory' (reverse history)
       where
         printHistory' (day, (attempted,pro)) = liftIO $ printf " %s : tried %d did %s\n" (show day) attempted (formatRepsWeight (pro ^. pReps) (pro ^. pWeight) Nothing)
+
 
 
 inputReps :: App Reps

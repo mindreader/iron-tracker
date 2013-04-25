@@ -42,9 +42,25 @@ data Proficiency = Pro {
 } deriving (Eq, Show)
 
 
+data WorkoutPlan = Plan [WorkoutStep] deriving (Show, Eq)
+
+
+data WorkoutStep =
+    BarbellExercise Exercise Reps Weight PlateOrder
+  | DumbbellExercise Exercise Reps Weight
+  | BodyWeightExercise Exercise Reps
+    deriving (Show, Eq)
+
+
+
+
 makeLenses ''WeightState
 makeLenses ''Exercise
 makeLenses ''Proficiency
+makeLenses ''WorkoutPlan
+makeLenses ''WorkoutStep
+
+
 
 instance Ord Exercise where
   compare e1 e2 = compare (e1 ^. eRank) (e2 ^. eRank)
