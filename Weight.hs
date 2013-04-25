@@ -82,8 +82,8 @@ type History = [(Day, (Reps, Proficiency))]
 workoutMode :: App ()
 workoutMode = do
   ws <- use weightState
-  wCycle <- use wCycle
-  (Plan steps) <- liftIO $ workoutPlan ws wCycle
+  cycle <- use wCycle
+  (Plan steps) <- liftIO $ workoutPlan ws cycle
   forM_ steps $ \step -> do
     beforeStep step
     workoutStep step
@@ -94,7 +94,7 @@ workoutMode = do
       liftIO $ printf "You must do %s.\n" (formatRepsWeight reps weight (Just $ PO.displayPlates plates))
     workoutStep (DumbbellExercise exer reps weight) = do
       liftIO $ printf "You must do %s.\n" (formatRepsWeight reps weight Nothing)
-    workoutStep (BodyWeightExercise exer reps) = do
+    workoutStep (BodyWeightExercise _ reps) = do
       liftIO $ printf "You must do %d reps.\n" reps
 
     beforeStep step = liftIO (printf "%s" (_eName . _sExercise $ step)) >> liftIO (pastHistory (_sExercise step) 5) >>= printHistory
@@ -143,9 +143,9 @@ printWorkout adjuster = do
     formatLine :: Int -> Either Exercise (Day, Proficiency, Exercise) -> String
     formatLine namelen (Left exercise) = printf
       ("%" <> (textToString . show $ namelen) <> "s : (never done)") (exercise ^. eName)
-    formatLine namelen (Right (date, Pro reps 0.0, exercise)) = printf
+    formatLine namelen (Right (_, Pro reps 0.0, exercise)) = printf
       ("%" <> (textToString . show $ namelen) <> "s : %d") (exercise ^. eName) reps
-    formatLine namelen (Right (date, Pro reps weight, exercise)) = printf
+    formatLine namelen (Right (_, Pro reps weight, exercise)) = printf
       ("%" <> (textToString . show $ namelen) <> "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (PC.displayPlateCalc PC.Barbell weight)
 
 rTrimZeros :: Text -> String
