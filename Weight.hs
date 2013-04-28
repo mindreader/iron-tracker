@@ -11,6 +11,8 @@ import Data.Time (Day)
 import qualified Data.Text as T (length)
 import qualified Data.Map as M (elems)
 
+import qualified Data.Text as T (unpack)
+
 import Data.Default
 import Safe (headMay)
 
@@ -157,7 +159,7 @@ printWorkout adjuster = do
       ("%" <> (textToString . show $ namelen) <> "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (PC.displayPlateCalc PC.Barbell weight)
 
 rTrimZeros :: Text -> String
-rTrimZeros = reverse . dropWhile (=='.') . dropWhile (== '0') . reverse . read
+rTrimZeros = reverse . dropWhile (=='.') . dropWhile (== '0') . reverse . T.unpack
 
 adjustWorkoutByReps :: App ()
 adjustWorkoutByReps = do

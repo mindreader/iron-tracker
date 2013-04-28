@@ -22,7 +22,7 @@ instance PrintfArg TL.Text where
   embed = AStr . TL.unpack
 
 instance PrintfArg Text where
-  embed = AStr . read
+  embed = AStr . T.unpack
 
 pressAnyKey :: MonadIO m => m ()
 pressAnyKey = liftIO $ printf "Press any key to continue\n" >> hFlush stdout >> getChar >> return ()
@@ -62,7 +62,7 @@ prompt :: (FromString a) => Text -> IO a
 prompt str = runInputT defaultSettings $ loop
   where
     loop = do
-      mx <- getInputLine $ read str
+      mx <- getInputLine $ T.unpack str
       case mx of
         Nothing -> loop
         Just x -> do
