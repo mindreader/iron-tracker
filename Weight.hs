@@ -104,7 +104,8 @@ workoutMode = do
       liftIO $ printf "You must do %d reps.\n" reps
 
     beforeStep exer = liftIO (printf "%s" (exer ^. eName)) >> liftIO (pastHistory exer 5) >>= printHistory
-    afterStep exer toldReps toldWeight = inputReps >>= (\newReps -> logLift exer (toldReps, Pro newReps toldWeight))
+    afterStep exer toldReps toldWeight = inputReps >>= (\newReps -> 
+      if newReps < 1 then return () else logLift exer (toldReps, Pro newReps toldWeight))
 
     formatRepsWeight :: Reps -> Weight -> (Maybe Text) -> Text
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
@@ -121,7 +122,7 @@ workoutMode = do
 
 
 inputReps :: App Reps
-inputReps = liftIO $ prompt "New reps:"
+inputReps = liftIO $ prompt "New reps (0 to skip):"
 inputWeight :: App Weight
 inputWeight = liftIO $ prompt "New weight:"
 
