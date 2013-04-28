@@ -24,6 +24,9 @@ calcCarbs :: Calories -> Protein -> Fat -> Carbs
 calcCarbs cals prot fat = round $ (fromIntegral cals - (fromIntegral fat * 9 + fromIntegral prot * 4)) / 4
 
 
+
+
+
 ingredients2Nutrition :: (Ingredient -> IO (Int,Nutrition)) -> [Ingredient] -> IO (Int, Nutrition)
 ingredients2Nutrition f ingredients = do
   nutrinfo <- mapM f ingredients :: IO [(Int, Nutrition)]
