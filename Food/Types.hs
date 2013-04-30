@@ -18,10 +18,10 @@ data Nutrition = Nut Calories Protein Fat Carbs deriving Show
 
 instance Monoid Nutrition where
   mempty = Nut 0 0 0 0
-  mappend (Nut !c1 !p1 !f1 !ca1) (Nut c2 p2 f2 ca2) = Nut (c1 + c2) (p1 + p2) (f1 + f2) (ca1 + ca2)
+  mappend (Nut !c1 !p1 !f1 !ca1) (Nut !c2 !p2 !f2 !ca2) = Nut (c1 + c2) (p1 + p2) (f1 + f2) (ca1 + ca2)
 
 data NutritionInfo = NI {
-  _servingSize   :: Maybe Int, -- ^ serving size in grams (defaults to unknown)
+  _servingSize   :: Maybe Int, -- ^ serving size in grams (defaults to whocares)
   _servingNumber :: Int,       -- ^ number required to get this info (defaults to one)
   _calories :: Calories,
   _protein  :: Protein,
