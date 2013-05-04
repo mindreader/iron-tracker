@@ -1,6 +1,12 @@
 {-# LANGUAGE TemplateHaskell, BangPatterns #-}
 
-module Food.Types where
+module Food.Types(
+  Calories, Fat, Protein, Carbs, Nutrition(..),
+  NutritionInfo(..),nServingSize,nServingNumber,nCalories,nProtein,nCarbs,nFat,
+  Food(Ingredient,Recipe),_fName, _fTypical,fName,fTypical,fNutritionInfo,fIngredients,
+  FoodState(..),foods,requirements,
+  Requirements(..),rCalories,rFat,rProtein,rCarbs,
+) where
 
 import BasicPrelude
 
@@ -21,19 +27,26 @@ instance Monoid Nutrition where
   mappend (Nut !c1 !p1 !f1 !ca1) (Nut !c2 !p2 !f2 !ca2) = Nut (c1 + c2) (p1 + p2) (f1 + f2) (ca1 + ca2)
 
 data NutritionInfo = NI {
-  _servingSize   :: Maybe Int, -- ^ serving size in grams (defaults to whocares)
-  _servingNumber :: Int,       -- ^ number required to get this info (defaults to one)
-  _calories :: Calories,
-  _protein  :: Protein,
-  _carbs    :: Carbs,
-  _fat      :: Fat
+  _nServingSize   :: Maybe Int, -- ^ serving size in grams (defaults to whocares)
+  _nServingNumber :: Int,       -- ^ number required to get this info (defaults to one)
+  _nCalories :: Calories,
+  _nProtein  :: Protein,
+  _nCarbs    :: Carbs,
+  _nFat      :: Fat
 } deriving Show
 
-data Food = Food {
-    _fName :: Text,           -- ^ name
-    _fTypicalPerMeal :: Int,  -- ^ number of this item typically eaten in a meal
-    _fNutritionInfo :: Maybe NutritionInfo -- ^ Some are just recipe names, others are concrete ingredients with health info
-  } deriving Show
+data Food =
+  Ingredient {
+    _fName :: Text,   -- ^ name
+    _fTypical :: Int, -- ^ number of this item typically eaten in a meal
+    _fNutritionInfo :: NutritionInfo -- ^ Some are just recipe names, others are concrete ingredients with health info
+  } |
+  Recipe {
+    _fName :: Text,      -- ^ name
+    _fTypical :: Int,    -- ^ number of this item typically eaten in a meal
+    _fIngredients :: [Food] -- ^ A list of ingredients, or recipes that are part of this recipe.
+  }
+  deriving Show
 
 
 -- | Foods are basically a tree of food items.
@@ -56,5 +69,13 @@ instance Default FoodState where
   def = FS empty (Req Nothing Nothing Nothing Nothing)
 
 
-makeLenses ''Food
 makeLenses ''FoodState
+makeLenses ''Food
+makeLenses ''NutritionInfo
+makeLenses ''Requirements
+
+{-
+food1 = Ingredient "cheese" 1 (NI Nothing 1 50 1 0 5)
+food2 = Ingredient "bread" 1 (NI (Just 10) 1 50 0 12 0)
+food3 = Recipe "grilledcheese" 1 [food1,food2]
+-}
