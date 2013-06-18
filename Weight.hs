@@ -8,7 +8,7 @@ import BasicPrelude
 import Control.Lens
 import Data.Time (Day)
 
-import qualified Data.Text as T (length)
+import qualified Data.Text as T (length, pack, unpack)
 import qualified Data.Map as M (elems)
 
 import qualified Data.Text as T (unpack)
@@ -140,7 +140,7 @@ printWorkout adjuster = do
   exers <- currentWorkout
   let maxExerNameLen = T.length $ maximumBy (\x y -> compare (T.length (x ^. eName)) (T.length (y ^. eName))) exers ^. eName
   when (null exers) $ liftIO $ printf "You do not have any exercises set up in your workout.\n"
-  mapM exerWithProf exers >>= mapM_ (liftIO . putStrLn . show . formatLine maxExerNameLen)
+  mapM exerWithProf exers >>= mapM_ (liftIO . putStrLn . formatLine maxExerNameLen)
   where
     exerWithProf :: Exercise -> App (Either Exercise (Day, Proficiency, Exercise))
     exerWithProf exer = do
@@ -150,12 +150,12 @@ printWorkout adjuster = do
         Just (day, (_, prof)) -> return . Right $ (day, adjuster prof, exer)
 
 
-    formatLine :: Int -> Either Exercise (Day, Proficiency, Exercise) -> String
-    formatLine namelen (Left exercise) = printf
+    formatLine :: Int -> Either Exercise (Day, Proficiency, Exercise) -> Text
+    formatLine namelen (Left exercise) = T.pack $ printf
       ("%" <> (textToString . show $ namelen) <> "s : (never done)") (exercise ^. eName)
-    formatLine namelen (Right (_, Pro reps 0.0, exercise)) = printf
+    formatLine namelen (Right (_, Pro reps 0.0, exercise)) = T.pack $ printf
       ("%" <> (textToString . show $ namelen) <> "s : %d") (exercise ^. eName) reps
-    formatLine namelen (Right (_, Pro reps weight, exercise)) = printf
+    formatLine namelen (Right (_, Pro reps weight, exercise)) = T.pack $ printf
       ("%" <> (textToString . show $ namelen) <> "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (PC.displayPlateCalc PC.Barbell weight)
 
 rTrimZeros :: Text -> String
