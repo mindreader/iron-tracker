@@ -159,7 +159,7 @@ printWorkout adjuster = do
       ("%" <> (textToString . show $ namelen) <> "s : %d@%.3s (%s)") (exercise ^. eName) reps (rTrimZeros $ show $ fromRational weight) (PC.displayPlateCalc PC.Barbell weight)
 
 rTrimZeros :: Text -> String
-rTrimZeros = reverse . dropWhile (=='.') . dropWhile (== '0') . reverse . T.unpack
+rTrimZeros = reverse . dropWhile (=='.') . dropWhile (== '0') . reverse . textToString
 
 adjustWorkoutByReps :: App ()
 adjustWorkoutByReps = do
