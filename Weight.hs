@@ -96,7 +96,7 @@ workoutMode = do
     beforeStep exer
     workoutStep step >> return ()
     afterStep exer reps weight
-    liftIO $ printf "Workout complete.\n"
+  liftIO $ printf "Workout complete.\n"
   where
     workoutStep (BarbellExercise exer reps weight plates) = do
       liftIO $ printf "You must do %s.\n" (formatRepsWeight reps weight (Just $ PO.displayPlates plates))
