@@ -94,7 +94,7 @@ improved x = reps x > toldreps x
 declined x = reps x < toldreps x
 stagnant :: DidThis -> DidThis -> Bool
 stagnant x y = toldreps x == toldreps y && reps x <= reps y && weight x <= weight y
-sameorlessweight xs = maximum weights <= last weights
+sameorlessweight xs = maximum weights <= head weights
   where  weights = fmap weight xs
 
   
