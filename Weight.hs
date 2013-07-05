@@ -106,8 +106,20 @@ workoutMode = do
       liftIO $ printf "You must do %d reps.\n" reps
 
     beforeStep exer = liftIO (printf "%s" (exer ^. eName)) >> liftIO (pastHistory exer 5) >>= printHistory
-    afterStep exer toldReps toldWeight = inputReps >>= (\newReps -> 
-      if newReps < 1 then return () else logLift exer (toldReps, Pro newReps toldWeight))
+    afterStep exer toldReps toldWeight = do
+      complete <- liftIO $ yesnoPrompt "Completed Exercise?" DefYes
+      if complete
+        then do
+          newtoldReps <- inputRepAttempt toldReps
+          newReps <- inputReps toldReps
+          newWeight <- inputWeight toldWeight
+          logLift exer (
+            if newtoldReps == 0 then toldReps else newtoldReps,
+            Pro
+              (if newReps == 0 then toldReps else newReps)
+              (if newWeight == 0 then toldWeight else newWeight))
+        else return ()
+
 
     formatRepsWeight :: Reps -> Weight -> (Maybe Text) -> Text
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
@@ -122,14 +134,20 @@ workoutMode = do
         printHistory' (day, (attempted,pro)) = liftIO $ printf " %s : tried %d did %s\n" (show day) attempted (formatRepsWeight (pro ^. pReps) (pro ^. pWeight) Nothing)
 
 
+inputRepAttempt :: Int-> App Reps
+inputRepAttempt def = liftIO . prompt $ "Attempted Reps (0 for " <> show def <> "):"
+inputReps :: Int-> App Reps
+inputReps 0 = liftIO . prompt $ "New reps:"
+inputReps def = liftIO . prompt $ "New reps (0 for " <> show def <> "):"
 
-inputReps :: App Reps
-inputReps = liftIO $ prompt "New reps (0 to skip):"
-inputWeight :: App Weight
-inputWeight = liftIO $ prompt "New weight:"
+-- FIXME can't enter weights that are not whole numbers.
+inputWeight :: Rational -> App Weight
+inputWeight 0 = fmap fromIntegral $ liftIO $ (prompt $ "New weight:" :: IO Int)
+inputWeight def = fmap fromIntegral $ liftIO $ (prompt $ "New weight (0 for " <> show (round def) <> "):" :: IO Int)
+
 
 inputProficiency :: App Proficiency
-inputProficiency = Pro <$> inputReps <*> inputWeight
+inputProficiency = Pro <$> inputReps 0 <*> inputWeight 0
 
 
 exerciseList = use (weightState . exercises . to M.elems)
