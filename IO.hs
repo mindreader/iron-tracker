@@ -37,7 +37,7 @@ instance FromString Integer where
   fromString' = readMay
 
 instance FromString Text where
-  fromString' = Just . show
+  fromString' = Just . T.pack
 
 instance FromString String where
   fromString' = Just
@@ -55,8 +55,17 @@ instance FromString Rational where
 
 data YNOpt = DefYes | DefNo
 yesnoPrompt :: Text -> YNOpt -> IO Bool
-yesnoPrompt str DefYes = prompt str >>= (\answer -> return $ answer /= ("n" :: Text))
-yesnoPrompt str DefNo  = prompt str >>= (\answer -> return $ answer == ("y" :: Text))
+yesnoPrompt str def = do
+  answer <- prompt str :: IO Text
+  putStrLn answer
+  return $ case answer of
+    "n" -> False
+    "no" -> False
+    "y" -> True
+    "yes" -> True
+    _ -> case def of
+      DefYes -> True
+      DefNo -> False
 
 prompt :: (FromString a) => Text -> IO a
 prompt str = runInputT defaultSettings $ loop
