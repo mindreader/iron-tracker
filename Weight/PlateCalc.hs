@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings, NoImplicitPrelude #-}
 module Weight.PlateCalc(displayPlateCalc,Plate(..),plateCalc, Plates(Plates,getPlates), BarType(..)) where
 
 import BasicPrelude

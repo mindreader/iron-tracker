@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, ScopedTypeVariables, NoImplicitPrelude, OverloadedStrings #-}
 module Food.Log(
   logNutrition, foodLog, foodLogDay
 ) where

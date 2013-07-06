@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings, NoImplicitPrelude #-}
 module Weight.PlateOrder (
 Plate(..),PlateOrder,Workout,optimalPlateOrder, displayPlates
 ) where

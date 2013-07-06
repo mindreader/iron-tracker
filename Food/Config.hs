@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings, NoImplicitPrelude #-}
 module Food.Config(
   loadFoodConfig
 ) where

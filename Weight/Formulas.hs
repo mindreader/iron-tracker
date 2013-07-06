@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings, NoImplicitPrelude #-}
 module Weight.Formulas(
   TryThis(..), DidThis(..), suggestNewRepWeight, adjustProfByReps
 ) where

@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings, NoImplicitPrelude #-}
 module Weight.Log(
   logLift, pastHistory, allHistory, dbFilterCurrentWorkout, dbAddExerciseToWorkout, dbRemExerciseFromWorkout
 ) where

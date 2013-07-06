@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances, TypeFamilies, OverloadedStrings, NoImplicitPrelude #-}
 
 module Menu where
 

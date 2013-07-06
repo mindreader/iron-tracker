@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, BangPatterns #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, BangPatterns, NoImplicitPrelude, OverloadedStrings #-}
 module Food where
 
 import BasicPrelude

@@ -1,3 +1,5 @@
+#!/usr/bin/env runghc
+{-# LANGUAGE OverloadedStrings, NoImplicitPrelude #-}
 module Main where
 
 import BasicPrelude

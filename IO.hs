@@ -1,4 +1,4 @@
-{-# LANGUAGE  FlexibleInstances #-}
+{-# LANGUAGE  FlexibleInstances, OverloadedStrings, NoImplicitPrelude  #-}
 module IO (
 prompt, pressAnyKey, printTable, pad, searchPrompt, yesnoPrompt, YNOpt(..),
 liftIO,MonadException,

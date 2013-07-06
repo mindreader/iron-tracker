@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, OverloadedStrings, NoImplicitPrelude #-}
 module Weight(
   runWeightRoutine
 ) where

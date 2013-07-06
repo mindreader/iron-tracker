@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell, ScopedTypeVariables, OverloadedStrings, NoImplicitPrelude #-}
 module WorkoutPlan (workoutPlan, WorkoutPlan(..), WorkoutStep(..)) where
 
 import BasicPrelude
