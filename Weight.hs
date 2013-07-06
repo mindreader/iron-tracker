@@ -105,7 +105,7 @@ workoutMode = do
     workoutStep (BodyWeightExercise _ reps) = do
       liftIO $ printf "You must do %d reps.\n" reps
 
-    beforeStep exer = liftIO (printf "%s" (exer ^. eName)) >> liftIO (pastHistory exer 5) >>= printHistory
+    beforeStep exer = liftIO (printf "%s" (exer ^. eName)) >> liftIO (pastHistory exer 7) >>= printHistory
     afterStep exer toldReps toldWeight = do
       complete <- liftIO $ yesnoPrompt "Completed Exercise?" DefYes
       if complete
