@@ -55,8 +55,8 @@ instance FromString Rational where
 
 data YNOpt = DefYes | DefNo
 yesnoPrompt :: Text -> YNOpt -> IO Bool
-yesnoPrompt str DefYes = prompt str >>= (\answer -> return $ answer /= ("no" :: Text))
-yesnoPrompt str DefNo  = prompt str >>= (\answer -> return $ answer == ("yes" :: Text))
+yesnoPrompt str DefYes = prompt str >>= (\answer -> return $ answer /= ("n" :: Text))
+yesnoPrompt str DefNo  = prompt str >>= (\answer -> return $ answer == ("y" :: Text))
 
 prompt :: (FromString a) => Text -> IO a
 prompt str = runInputT defaultSettings $ loop
