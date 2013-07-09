@@ -96,8 +96,15 @@ improved x = reps x > toldreps x
 declined x = reps x < toldreps x
 stagnant :: DidThis -> DidThis -> Bool
 stagnant x y = toldreps x == toldreps y && reps x <= reps y && weight x <= weight y
-sameorlessweight xs = trace ("max weight:" ++ textToString (show (maximum weights)) ++ " head weights:" ++ textToString (show (head weights))) $ maximum weights <= head weights
-  where  weights = fmap weight xs
+
+sameorlessweight xs =
+--  trace ("max weight:" ++ textToString (show (maximum weights)) ++ " head weights:" ++ textToString (show (head weights))) $ maximum weights <= head weights
+  avg weights >= head weights
+  where
+    weights = fmap weight xs
+    maxweights = maximum weights
+    avg [] = error "Weight/Formulas.hs: avg should never be sent an empty list."
+    avg xs = sum xs / fromIntegral (length xs)
 
   
 test2 = do
