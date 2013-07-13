@@ -124,8 +124,8 @@ workoutMode = do
     formatRepsWeight :: Reps -> Weight -> (Maybe Text) -> Text
     -- TODO this really should suggest the last weight we did.  If we did it over two weeks ago, it doesn't have the info at this point in code.
     formatRepsWeight reps 0.0 _ = show $ (printf "%d" reps :: String)
-    formatRepsWeight reps weight (Just plates) = show $ (printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) plates :: String)
-    formatRepsWeight reps weight Nothing = show $ (printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (PC.displayPlateCalc PC.Barbell weight) :: String)
+    formatRepsWeight reps weight (Just plates) = T.pack $ (printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) plates :: String)
+    formatRepsWeight reps weight Nothing = T.pack $ (printf "%d@%s (%s)" reps (rTrimZeros $ show $ (fromRational weight :: Double)) (PC.displayPlateCalc PC.Barbell weight) :: String)
 
     printHistory :: History -> App ()
     printHistory history = do
