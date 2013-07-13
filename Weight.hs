@@ -113,6 +113,7 @@ workoutMode = do
           newtoldReps <- inputRepAttempt toldReps
           newReps <- inputReps toldReps
           newWeight <- inputWeight toldWeight
+          liftIO $ putStrLn ""
           logLift exer (
             if newtoldReps == 0 then toldReps else newtoldReps,
             Pro
