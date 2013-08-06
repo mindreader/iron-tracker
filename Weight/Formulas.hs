@@ -34,8 +34,8 @@ suggestNewRepWeight cycleLength today didthis = case removeOldCycles today didth
 
     --Restarting at beginning, if we have past history, then use it.
     nextWeightBeginAgain :: [DidThis] -> TryThis
-    nextWeightBeginAgain [] = TryThis 15 0
-    nextWeightBeginAgain (x:xs) = TryThis 15 $ changeReps 15 (reps x) (weight x)
+    nextWeightBeginAgain [] = TryThis 14 0
+    nextWeightBeginAgain (x:xs) = TryThis 14 $ changeReps 14 (reps x) (weight x)
 
     --Continuing on weight progression
     nextWeight' :: [DidThis] -> TryThis
@@ -52,10 +52,10 @@ suggestNewRepWeight cycleLength today didthis = case removeOldCycles today didth
       (x:_) | improved x ->
         {- trace "improved" $ -} TryThis (toldreps x) $ changeReps (toldreps x) (reps x) (weight x)
 
-      -- If you are above 15, regardless of previous workout, readjust down to 15.
+      -- If you are above 14, regardless of previous workout, readjust down to 14.
       -- Can happen on first workout, if you severely underestimate your strength.
-      (x:_) | reps x > 15 ->
-        {- trace "above 15" $ -} TryThis 15 $ changeReps 15 (reps x) (weight x)
+      (x:_) | reps x > 14 ->
+        {- trace "above 14" $ -} TryThis 14 $ changeReps 14 (reps x) (weight x)
 
       -- Stagnant over 3 workouts, renormalize at lower rep count
       (x:y:z:_) | stagnant x y && stagnant y z ->
@@ -74,7 +74,7 @@ suggestNewRepWeight cycleLength today didthis = case removeOldCycles today didth
       (x:_) -> {- trace "not enough history" $ -} TryThis (toldreps x) (weight x)
 
       -- You've never done this before, you figure out what to do, and then tell me how you did for next time.
-      [] -> {- trace "never done before" $ -} TryThis 15 0
+      [] -> {- trace "never done before" $ -} TryThis 14 0
 
     --If the new weight is the same as the old weight, give back the original rep count instead and keep weight the same
   {-  adjustWeight r' r w = if w' == w
